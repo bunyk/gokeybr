@@ -62,7 +62,7 @@ func reduce(s State, msg Message, now time.Time) (State, []Command) {
 
 func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		return s, []Command{Exit{GoodbyeMessage: banner(s, now)}}
+		return s, []Command{Exit{GoodbyeMessage: "bye!"}}
 	}
 	if s.Phrase.ShowFail(now) {
 		return s, Noop
@@ -295,18 +295,4 @@ func (p *Phrase) expected() rune {
 
 	expected, _ := utf8.DecodeRuneInString(p.Text[len(p.Input):])
 	return expected
-}
-
-func banner(s State, t time.Time) string {
-	if s.Phrase.ShowFail(t) {
-		return `
- ____       _       ____   _____    ___    _   _   ___   _____
-|  _ \     / \     / ___| | ____|  / _ \  | | | | |_ _| |_   _|
-| |_) |   / _ \   | |  _  |  _|   | | | | | | | |  | |    | |
-|  _ <   / ___ \  | |_| | | |___  | |_| | | |_| |  | |    | |
-|_| \_\ /_/   \_\  \____| |_____|  \__\_\  \___/  |___|   |_|
-`
-	}
-
-	return ""
 }

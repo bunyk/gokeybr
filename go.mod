@@ -1,4 +1,4 @@
-module github.com/eggman64/gotypist
+module github.com/bunyk/gokeybr
 
 go 1.14
 

@@ -14,11 +14,7 @@ func main() {
 	}
 	termbox.SetInputMode(termbox.InputEsc)
 
-	if len(os.Args) == 2 && os.Args[1] == "-d" {
-		runDemo()
-	} else {
-		loop(os.Args)
-	}
+	loop(os.Args)
 }
 
 func loop(args []string) {
