@@ -29,7 +29,6 @@ go get github.com/bunyk/gokeybr
     ESC   quit
     C-F   skip forward to the next phrase
     C-R   toggle repeat phrase mode
-    C-I   toggle finger usage hints
 
 ## Code organization
 

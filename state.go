@@ -34,9 +34,7 @@ type State struct {
 	Seed             int64
 	PhraseGenerator  PhraseFunc
 	Phrase           Phrase
-	HideFingers      bool
 	Repeat           bool
-	RageQuit         bool
 	Statsfile        string
 	Score            float64
 	LastScore        float64
@@ -79,8 +77,6 @@ func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 		s = resetPhrase(s, true)
 	case termbox.KeyCtrlR:
 		s.Repeat = !s.Repeat
-	case termbox.KeyCtrlI:
-		s.HideFingers = !s.HideFingers
 	case termbox.KeyEnter, termbox.KeyCtrlJ:
 		return reduceEnter(s, now)
 	default:
@@ -259,7 +255,6 @@ func NewState(seed int64, phraseGenerator PhraseFunc) *State {
 	s := resetPhrase(State{
 		PhraseGenerator: phraseGenerator,
 		Seed:            seed,
-		HideFingers:     true,
 	}, false)
 
 	return &s
