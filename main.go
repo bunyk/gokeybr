@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"strings"
 	"time"
 
 	"github.com/nsf/termbox-go"
@@ -18,12 +17,12 @@ func main() {
 	if len(os.Args) == 2 && os.Args[1] == "-d" {
 		runDemo()
 	} else {
-		loop(os.Args, env())
+		loop(os.Args)
 	}
 }
 
-func loop(args []string, env map[string]string) {
-	state, cmds := Init(args, env)
+func loop(args []string) {
+	state, cmds := Init(args)
 	state = runCommands(state, cmds)
 
 	for {
@@ -60,15 +59,4 @@ func waitForEvent() []Message {
 	}
 
 	return []Message{}
-}
-
-func env() map[string]string {
-	vars := map[string]string{}
-
-	for _, v := range os.Environ() {
-		pair := strings.SplitN(v, "=", 2)
-		vars[pair[0]] = pair[1]
-	}
-
-	return vars
 }

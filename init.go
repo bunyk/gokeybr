@@ -4,11 +4,12 @@ package main
 import (
 	"bytes"
 	"flag"
+	"os"
 	"strings"
 	"time"
 )
 
-func Init(args []string, env map[string]string) (State, []Command) {
+func Init(args []string) (State, []Command) {
 	state := *NewState(0, DefaultPhrase)
 
 	commandLine := flag.NewFlagSet(args[0], flag.ContinueOnError)
@@ -41,7 +42,7 @@ func Init(args []string, env map[string]string) (State, []Command) {
 		})
 	}
 
-	home, _ := env["HOME"]
+	home := os.Getenv("HOME")
 	state.Statsfile = home + "/.gotypist.stats"
 
 	return state, append(commands,

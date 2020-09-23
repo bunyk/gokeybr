@@ -1,35 +1,17 @@
-# Gotypist [![Build Status](https://travis-ci.org/pb-/gotypist.svg?branch=master)](https://travis-ci.org/pb-/gotypist)
+# Gokeybr
 
-A simple touch-typing tutor that follows [Steve Yegge's methodology](http://steve-yegge.blogspot.com/2008/09/programmings-dirtiest-little-secret.html) of going in fast, slow, and medium cycles.
+A fork of [gotypist](https://github.com/pb-/gotypist) touch-typing tutori, that tries to improve on [keybr.com](https://www.keybr.com/)
 
 ![Screenshot of a Gotypist session, normal mode](screenshot.png)
 
-The TL;DR of this methodology is that you make three passes for each phrase.
-
- * **Fast** - type as fast as you can without any attention to proper technique or correctness
- * **Slow** - use proper technique at all costs, go as slow as needed to achieve that
- * **Normal** - type at *target speed*, try to make no mistakes
-
-Gotypist will score each pass accordingly: errors do not matter in the first pass, speed does not matter in the second pass, and both matter in the final pass. Check out `score.go` for details (which are subject to change).
-
-This project was mainly motivated by trying out [termbox-go](https://github.com/nsf/termbox-go), but it is definitely ready for productive learning.
+This project is done to improve my typing speed, and to figure out how to use [termbox-go](https://github.com/nsf/termbox-go), because I found no tutorials for that library or gocell.
 
 ## Installation
 
 ### From source
 
 ```bash
-go get github.com/pb-/gotypist
-```
-
-### Using a package manager
-
-#### Debian
-
-Grab `.deb` from [barnumbirr/gotypist-debian](https://github.com/barnumbirr/gotypist-debian/releases), then
-
-```bash
-dpkg -i gotypist_<version>_amd64_<debian_version>.deb
+go get github.com/bunyk/gokeybr
 ```
 
 ## Usage
