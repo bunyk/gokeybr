@@ -14,7 +14,6 @@ func Init(args []string) (State, []Command) {
 	commandLine := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	datafile := commandLine.String("f", "/usr/share/dict/words", "load word list from `FILE`. \"-\" for stdin.")
 	commandLine.BoolVar(&state.Codelines, "c", false, "treat -f FILE as lines of code")
-	commandLine.Float64Var(&state.NumberProb, "n", 0, "mix in numbers with `PROBABILITY`")
 
 	err := commandLine.Parse(args[1:])
 	if err != nil {

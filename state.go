@@ -8,6 +8,8 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+const PhraseLength = 100
+
 type Typo struct {
 	Expected string `json:"expected"`
 	Actual   string `json:"actual"`
@@ -29,7 +31,6 @@ type Phrase struct {
 
 type State struct {
 	Codelines       bool
-	NumberProb      float64
 	Seed            int64
 	PhraseGenerator PhraseFunc
 	Phrase          Phrase
@@ -139,7 +140,7 @@ func reduceDatasource(state State, data []byte, now time.Time) (State, []Command
 		generator = SequentialLine
 	} else {
 		items = filterWords(items, `^[a-z]+$`, 8)
-		generator = func(words []string) PhraseFunc { return RandomPhrase(words, 30, state.NumberProb) }
+		generator = func(words []string) PhraseFunc { return RandomPhrase(words, PhraseLength) }
 		state.Seed = now.UnixNano()
 	}
 

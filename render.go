@@ -25,8 +25,6 @@ const (
 	magenta = termbox.ColorMagenta
 	cyan    = termbox.ColorCyan
 	white   = termbox.ColorWhite
-
-	bold = termbox.AttrBold
 )
 
 type Align int
@@ -130,19 +128,4 @@ func (p *printSpec) Fg(fg termbox.Attribute) *printSpec {
 func (p *printSpec) Bg(bg termbox.Attribute) *printSpec {
 	p.bg = bg
 	return p
-}
-
-func failMessage(errs int) string {
-	switch errs {
-	case 1:
-		return "Not quite! Please try again in %d..."
-	case 2, 3:
-		return "FAIL! Let's do this again in %d..."
-	case 4, 5:
-		return "Dude?! Try again in %d..."
-	case 6, 7, 8:
-		return "Are you serious?!? Again in %d..."
-	default:
-		return "I don't even... %d..."
-	}
 }
