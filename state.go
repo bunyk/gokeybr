@@ -24,8 +24,7 @@ type Round struct {
 type Phrase struct {
 	Text   string
 	Input  string
-	Rounds [3]Round
-	Mode   Mode
+	Rounds [1]Round
 }
 
 type State struct {
@@ -53,9 +52,6 @@ func reduce(s State, msg Message, now time.Time) (State, []Command) {
 func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
 		return s, []Command{Exit{GoodbyeMessage: "bye!"}}
-	}
-	if s.Phrase.ShowFail(now) {
-		return s, Noop
 	}
 
 	if s.Phrase.CurrentRound().StartedAt.IsZero() {
@@ -94,11 +90,6 @@ func reduceEnter(s State, now time.Time) (State, []Command) {
 	}
 
 	s.Phrase.CurrentRound().FinishedAt = now
-	if s.Phrase.Mode != ModeNormal {
-		s.Phrase.Mode++
-		s.Phrase.Input = ""
-		return s, []Command{}
-	}
 
 	s = resetPhrase(s, false)
 
@@ -133,19 +124,6 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 
 	s.Phrase.CurrentRound().Errors++
 	s.Phrase.CurrentRound().FailedAt = now
-
-	if s.Phrase.Mode == ModeFast {
-		return s, []Command{Interrupt{FastErrorHighlightDuration}}
-	}
-
-	if s.Phrase.Mode == ModeSlow {
-		s.Phrase.Input = ""
-		cmds := []Command{}
-		for t := 1; t <= FailPenaltySeconds; t++ {
-			cmds = append(cmds, Interrupt{time.Duration(t) * time.Second})
-		}
-		return s, cmds
-	}
 
 	// normal mode
 	s.Phrase.Input += string(ch)
@@ -219,20 +197,7 @@ func NewPhrase(text string) *Phrase {
 }
 
 func (p *Phrase) CurrentRound() *Round {
-	return &p.Rounds[p.Mode]
-}
-
-func (p *Phrase) ShowFail(t time.Time) bool {
-	return p.Mode == ModeSlow && t.Sub(p.CurrentRound().FailedAt) < FailPenaltyDuration
-}
-
-func (p *Phrase) ErrorCountColor(t time.Time) termbox.Attribute {
-	if p.Mode == ModeFast && t.Sub(p.CurrentRound().FailedAt) < FastErrorHighlightDuration {
-		return termbox.ColorYellow | termbox.AttrBold
-	} else if p.Mode == ModeFast {
-		return termbox.ColorBlack
-	}
-	return termbox.ColorDefault
+	return &p.Rounds[0]
 }
 
 func (p *Phrase) expected() rune {

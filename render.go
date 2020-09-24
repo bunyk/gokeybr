@@ -54,30 +54,21 @@ func render(s State, now time.Time) {
 
 	byteOffset, runeOffset := errorOffset(s.Phrase.Text, s.Phrase.Input)
 
-	if s.Phrase.ShowFail(now) {
-		left := min(int(s.Phrase.CurrentRound().FailedAt.
-			Add(FailPenaltyDuration).Sub(now).Seconds()+1), FailPenaltySeconds)
-		write(text(failMessage(s.Phrase.CurrentRound().Errors), left).
-			X(w / 2).Y(h / 2).Fg(red | bold).Align(Center))
-	} else {
-		x := (w / 2) - (utf8.RuneCountInString(s.Phrase.Text) / 2)
-		write(text(s.Phrase.Text + string('⏎')).X(x).Y(h / 2).Fg(white))
+	x := (w / 2) - (utf8.RuneCountInString(s.Phrase.Text) / 2)
+	write(text(s.Phrase.Text + string('⏎')).X(x).Y(h / 2).Fg(white))
 
-		write(text(spaced(s.Phrase.Input[:byteOffset])).
-			X(x).Y(h / 2).Fg(green))
-		write(text(spaced(s.Phrase.Input[byteOffset:])).
-			X(x + runeOffset).Y(h / 2).Fg(black).Bg(red))
-	}
+	write(text(spaced(s.Phrase.Input[:byteOffset])).
+		X(x).Y(h / 2).Fg(green))
+	write(text(spaced(s.Phrase.Input[byteOffset:])).
+		X(x + runeOffset).Y(h / 2).Fg(black).Bg(red))
 
 	if s.Repeat {
 		write(text("Repeating phrase").X(w - 1).Y(1).Align(Right))
 	}
 
-	seconds, _, _ := computeStats(
-		s.Phrase.Input[:byteOffset], s.Phrase.CurrentRound().StartedAt, now)
-
+	seconds := 42.0 // TODO: add stats back
 	errorsText := text("%3d errors", s.Phrase.CurrentRound().Errors).
-		Y(h/2 + 4).Fg(s.Phrase.ErrorCountColor(now))
+		Y(h/2 + 4).Fg(termbox.ColorDefault)
 	secondsText := text("%4.1f seconds", seconds).
 		Y(h/2 + 4)
 
