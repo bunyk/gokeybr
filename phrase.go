@@ -76,6 +76,4 @@ func readLines(data []byte) []string {
 		}
 		lines = append(lines, line[:len(line)-1])
 	}
-
-	return lines
 }

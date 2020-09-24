@@ -15,18 +15,14 @@ type Typo struct {
 	Actual   string `json:"actual"`
 }
 
-type Round struct {
+type Phrase struct {
+	Text       string
+	Input      string
 	StartedAt  time.Time
 	FailedAt   time.Time
 	FinishedAt time.Time
 	Errors     int
 	Typos      []Typo
-}
-
-type Phrase struct {
-	Text   string
-	Input  string
-	Rounds [1]Round
 }
 
 type State struct {
@@ -41,8 +37,6 @@ func reduce(s State, msg Message, now time.Time) (State, []Command) {
 	switch m := msg.(type) {
 	case error:
 		return s, []Command{Exit{GoodbyeMessage: m.Error()}}
-	case Datasource:
-		return reduceDatasource(s, m.Data, now)
 	case termbox.Event:
 		return reduceEvent(s, m, now)
 	}
@@ -55,8 +49,8 @@ func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 		return s, []Command{Exit{GoodbyeMessage: "bye!"}}
 	}
 
-	if s.Phrase.CurrentRound().StartedAt.IsZero() {
-		s.Phrase.CurrentRound().StartedAt = now
+	if s.Phrase.StartedAt.IsZero() {
+		s.Phrase.StartedAt = now
 	}
 
 	switch ev.Key {
@@ -90,7 +84,7 @@ func reduceEnter(s State, now time.Time) (State, []Command) {
 		return s, Noop
 	}
 
-	s.Phrase.CurrentRound().FinishedAt = now
+	s.Phrase.FinishedAt = now
 
 	s = resetPhrase(s, false)
 
@@ -116,41 +110,19 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 	}
 
 	if exp != 0 {
-		s.Phrase.CurrentRound().Typos = append(
-			s.Phrase.CurrentRound().Typos, Typo{
+		s.Phrase.Typos = append(
+			s.Phrase.Typos, Typo{
 				Expected: string(exp),
 				Actual:   string(ch),
 			})
 	}
 
-	s.Phrase.CurrentRound().Errors++
-	s.Phrase.CurrentRound().FailedAt = now
+	s.Phrase.Errors++
+	s.Phrase.FailedAt = now
 
 	// normal mode
 	s.Phrase.Input += string(ch)
 	return s, Noop
-}
-
-func reduceDatasource(state State, data []byte, now time.Time) (State, []Command) {
-	var generator func([]string) PhraseFunc
-
-	items := readLines(data)
-	if state.Codelines {
-		items = filterWords(items, `^[^/][^/]`, 80)
-		generator = SequentialLine
-	} else {
-		items = filterWords(items, `^[a-z]+$`, 8)
-		generator = func(words []string) PhraseFunc { return RandomPhrase(words, PhraseLength) }
-		state.Seed = now.UnixNano()
-	}
-
-	if len(items) == 0 {
-		return state, []Command{Exit{GoodbyeMessage: "datafile contains no usable data"}}
-	}
-
-	state.PhraseGenerator = generator(items)
-
-	return resetPhrase(state, false), Noop
 }
 
 func resetPhrase(state State, forceNext bool) State {
@@ -195,10 +167,6 @@ func NewPhrase(text string) *Phrase {
 	return &Phrase{
 		Text: text,
 	}
-}
-
-func (p *Phrase) CurrentRound() *Round {
-	return &p.Rounds[0]
 }
 
 func (p *Phrase) expected() rune {

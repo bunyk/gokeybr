@@ -10,21 +10,14 @@ import (
 )
 
 const (
-	FailPenaltySeconds         = 3
-	FailPenaltyDuration        = time.Second * FailPenaltySeconds
-	FastErrorHighlightDuration = time.Millisecond * 333
-	ScoreHighlightDuration     = time.Second * 3
+	ScoreHighlightDuration = time.Second * 3
 )
 
 const (
-	black   = termbox.ColorBlack
-	red     = termbox.ColorRed
-	green   = termbox.ColorGreen
-	yellow  = termbox.ColorYellow
-	blue    = termbox.ColorBlue
-	magenta = termbox.ColorMagenta
-	cyan    = termbox.ColorCyan
-	white   = termbox.ColorWhite
+	black = termbox.ColorBlack
+	red   = termbox.ColorRed
+	green = termbox.ColorGreen
+	white = termbox.ColorWhite
 )
 
 type Align int
@@ -44,8 +37,8 @@ type printSpec struct {
 	align Align
 }
 
-func render(s State, now time.Time) {
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+func render(s State) {
+	_ = termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	defer termbox.Flush()
 
 	w, h := termbox.Size()
@@ -64,8 +57,8 @@ func render(s State, now time.Time) {
 		write(text("Repeating phrase").X(w - 1).Y(1).Align(Right))
 	}
 
-	seconds := 42.0 // TODO: add stats back
-	errorsText := text("%3d errors", s.Phrase.CurrentRound().Errors).
+	seconds := time.Now().Sub(s.Phrase.StartedAt).Seconds()
+	errorsText := text("%3d errors", s.Phrase.Errors).
 		Y(h/2 + 4).Fg(termbox.ColorDefault)
 	secondsText := text("%4.1f seconds", seconds).
 		Y(h/2 + 4)
