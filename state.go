@@ -29,17 +29,12 @@ type Phrase struct {
 }
 
 type State struct {
-	Codelines        bool
-	NumberProb       float64
-	Seed             int64
-	PhraseGenerator  PhraseFunc
-	Phrase           Phrase
-	Repeat           bool
-	Statsfile        string
-	Score            float64
-	LastScore        float64
-	LastScorePercent float64
-	LastScoreUntil   time.Time
+	Codelines       bool
+	NumberProb      float64
+	Seed            int64
+	PhraseGenerator PhraseFunc
+	Phrase          Phrase
+	Repeat          bool
 }
 
 func reduce(s State, msg Message, now time.Time) (State, []Command) {
@@ -48,9 +43,6 @@ func reduce(s State, msg Message, now time.Time) (State, []Command) {
 		return s, []Command{Exit{GoodbyeMessage: m.Error()}}
 	case Datasource:
 		return reduceDatasource(s, m.Data, now)
-	case StatsData:
-		s.Score = getTotalScore(m.Data)
-		return s, Noop
 	case termbox.Event:
 		return reduceEvent(s, m, now)
 	}
@@ -101,27 +93,16 @@ func reduceEnter(s State, now time.Time) (State, []Command) {
 		return s, Noop
 	}
 
-	logCmd := AppendFile{
-		Filename: s.Statsfile,
-		Data:     formatStats(&s.Phrase, now),
-		Error:    PassError,
-	}
-
 	s.Phrase.CurrentRound().FinishedAt = now
 	if s.Phrase.Mode != ModeNormal {
 		s.Phrase.Mode++
 		s.Phrase.Input = ""
-		return s, []Command{logCmd}
+		return s, []Command{}
 	}
 
-	s.LastScoreUntil = now.Add(ScoreHighlightDuration)
-	score := mustComputeScore(s.Phrase)
-	s.LastScore = score
-	s.LastScorePercent = score / maxScore(s.Phrase.Text)
-	s.Score += score
 	s = resetPhrase(s, false)
 
-	return s, []Command{logCmd, Interrupt{ScoreHighlightDuration}}
+	return s, []Command{Interrupt{ScoreHighlightDuration}}
 }
 
 func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command) {
@@ -173,18 +154,17 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 
 func reduceDatasource(state State, data []byte, now time.Time) (State, []Command) {
 	var generator func([]string) PhraseFunc
-	var filter func([]string) []string
 
+	items := readLines(data)
 	if state.Codelines {
-		filter = func(items []string) []string { return filterWords(items, `^[^/][^/]`, 80) }
+		items = filterWords(items, `^[^/][^/]`, 80)
 		generator = SequentialLine
 	} else {
-		filter = func(items []string) []string { return filterWords(items, `^[a-z]+$`, 8) }
+		items = filterWords(items, `^[a-z]+$`, 8)
 		generator = func(words []string) PhraseFunc { return RandomPhrase(words, 30, state.NumberProb) }
 		state.Seed = now.UnixNano()
 	}
 
-	items := filter(readLines(data))
 	if len(items) == 0 {
 		return state, []Command{Exit{GoodbyeMessage: "datafile contains no usable data"}}
 	}
@@ -221,34 +201,6 @@ func errorOffset(text string, input string) (int, int) {
 	}
 
 	return min(len(input), len(text)), runeOffset
-}
-
-func mustComputeScore(phrase Phrase) float64 {
-	var scores [3]float64
-	if len(scores) != len(phrase.Rounds) {
-		panic("bad score computation")
-	}
-
-	for mode, round := range phrase.Rounds {
-		var s float64
-		time := round.FinishedAt.Sub(round.StartedAt)
-		switch mode {
-		case ModeFast.Num():
-			s = speedScore(phrase.Text, time)
-		case ModeSlow.Num():
-			s = errorScore(phrase.Text, round.Errors)
-		case ModeNormal.Num():
-			s = score(phrase.Text, time, round.Errors)
-		}
-
-		scores[mode] = s
-	}
-
-	return finalScore(
-		phrase.Text,
-		scores[ModeFast],
-		scores[ModeSlow],
-		scores[ModeNormal])
 }
 
 func NewState(seed int64, phraseGenerator PhraseFunc) *State {

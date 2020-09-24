@@ -30,6 +30,10 @@ type ReadFile struct {
 	Error    func(error) Message
 }
 
+type Datasource struct {
+	Data []byte
+}
+
 type AppendFile struct {
 	Filename string
 	Data     []byte

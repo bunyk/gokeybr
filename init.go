@@ -4,7 +4,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	"os"
 	"strings"
 	"time"
 )
@@ -41,14 +40,7 @@ func Init(args []string) (State, []Command) {
 		})
 	}
 
-	home := os.Getenv("HOME")
-	state.Statsfile = home + "/.gotypist.stats"
-
 	return state, append(commands,
-		ReadFile{
-			Filename: state.Statsfile,
-			Success:  func(data []byte) Message { return StatsData{Data: data} },
-		},
 		PeriodicInterrupt{250 * time.Millisecond},
 	)
 }

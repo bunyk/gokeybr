@@ -2,10 +2,7 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
-	"io"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -36,56 +33,6 @@ func computeStats(text string, start, end time.Time) (seconds, cps, wpm float64)
 	}
 
 	return seconds, cps, wpm
-}
-
-func computeTotalScore(stats []Statistics) float64 {
-	s := 0.
-
-	for i := 0; i < len(stats)-2; i++ {
-		fast := stats[i]
-		slow := stats[i+1]
-		normal := stats[i+2]
-
-		if fast.Mode != ModeFast ||
-			slow.Mode != ModeSlow ||
-			normal.Mode != ModeNormal {
-			continue
-		}
-
-		if fast.Text != slow.Text || slow.Text != normal.Text {
-			continue
-		}
-
-		s += finalScore(
-			fast.Text,
-			speedScore(fast.Text, fast.FinishedAt.Sub(fast.StartedAt)),
-			errorScore(slow.Text, slow.Errors),
-			score(normal.Text, normal.FinishedAt.Sub(normal.StartedAt), normal.Errors),
-		)
-	}
-
-	return s
-}
-
-func getTotalScore(data []byte) float64 {
-	reader := bufio.NewReader(bytes.NewBuffer(data))
-	var stats []Statistics
-	for {
-		line, err := reader.ReadString('\n')
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			panic(err)
-		}
-		var s Statistics
-		err = json.Unmarshal([]byte(strings.TrimSpace(line)), &s)
-		if err != nil {
-			panic(err)
-		}
-		stats = append(stats, s)
-	}
-
-	return computeTotalScore(stats)
 }
 
 func formatStats(phrase *Phrase, now time.Time) []byte {
