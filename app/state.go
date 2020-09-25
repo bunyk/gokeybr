@@ -5,6 +5,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/bunyk/gokeybr/phrase"
+
 	"github.com/nsf/termbox-go"
 )
 
@@ -27,7 +29,7 @@ type Phrase struct {
 
 type State struct {
 	Seed            int64
-	PhraseGenerator PhraseFunc
+	PhraseGenerator phrase.Generator
 	Phrase          Phrase
 	Repeat          bool
 }
@@ -126,10 +128,9 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 
 func resetPhrase(state State, forceNext bool) State {
 	if !state.Repeat || forceNext {
-		next, _ := state.PhraseGenerator(state.Seed)
-		state.Seed = next
+		state.PhraseGenerator.Phrase() // Just to update seed
 	}
-	_, phrase := state.PhraseGenerator(state.Seed)
+	phrase := state.PhraseGenerator.Phrase()
 	state.Phrase = *NewPhrase(phrase)
 
 	return state
@@ -153,10 +154,9 @@ func errorOffset(text string, input string) (int, int) {
 	return min(len(input), len(text)), runeOffset
 }
 
-func NewState(seed int64, phraseGenerator PhraseFunc) *State {
+func NewState(phraseGenerator phrase.Generator) *State {
 	s := resetPhrase(State{
 		PhraseGenerator: phraseGenerator,
-		Seed:            seed,
 	}, false)
 
 	return &s

@@ -1,12 +1,11 @@
 package app
 
 import (
-	"io/ioutil"
 	"log"
-	"os"
 	"time"
 
 	"github.com/bunyk/gokeybr/models"
+	"github.com/bunyk/gokeybr/phrase"
 	"github.com/nsf/termbox-go"
 )
 
@@ -42,17 +41,30 @@ func InitTermbox() error {
 }
 
 func InitState(params models.Parameters) State {
-	state := *NewState(0, DefaultPhrase)
+	state := *NewState(phrase.DefaultGenerator)
 
 	if len(params.Sourcetext) > 0 {
-		state.PhraseGenerator = StaticPhrase(params.Sourcetext)
+		state.PhraseGenerator = phrase.StaticGenerator{params.Sourcetext}
 		state = resetPhrase(state, false)
 	} else {
-		data, err := readFile(params.Sourcefile)
+		items, err := phrase.ReadFileLines(params.Sourcefile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		state = reduceDatasource(state, data, params.Codelines)
+		// state = reduceDatasource(state, data, params.Codelines)
+		if params.Codelines {
+			items = phrase.FilterWords(items, `^[^/][^/]`, 80)
+			state.PhraseGenerator = &phrase.SequentialLineGenerator{Lines: items}
+		} else {
+			items = phrase.FilterWords(items, `^[a-z]+$`, 8)
+			state.PhraseGenerator = phrase.NewRandomGenerator(items, PhraseLength)
+		}
+
+		if len(items) == 0 {
+			log.Fatal("datafile contains no usable data")
+		}
+
+		state = resetPhrase(state, false)
 	}
 
 	return state
@@ -63,37 +75,6 @@ func (a *App) Run() {
 		render(a.state)
 		a.state = reduceMessages(a.state, waitForEvent(), time.Now())
 	}
-}
-
-func readFile(filename string) (content []byte, err error) {
-	if filename == "-" {
-		content, err = ioutil.ReadAll(os.Stdin)
-	} else {
-		content, err = ioutil.ReadFile(filename)
-	}
-	return
-}
-
-func reduceDatasource(state State, data []byte, codelines bool) State {
-	var generator func([]string) PhraseFunc
-
-	items := readLines(data)
-	if codelines {
-		items = filterWords(items, `^[^/][^/]`, 80)
-		generator = SequentialLine
-	} else {
-		items = filterWords(items, `^[a-z]+$`, 8)
-		generator = func(words []string) PhraseFunc { return RandomPhrase(words, PhraseLength) }
-		state.Seed = time.Now().UnixNano()
-	}
-
-	if len(items) == 0 {
-		log.Fatal("datafile contains no usable data")
-	}
-
-	state.PhraseGenerator = generator(items)
-
-	return resetPhrase(state, false)
 }
 
 func runCommands(state State, commands []Command) State {
