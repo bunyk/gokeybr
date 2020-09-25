@@ -57,7 +57,7 @@ func InitState(params models.Parameters) State {
 			state.PhraseGenerator = &phrase.SequentialLineGenerator{Lines: items}
 		} else {
 			items = phrase.FilterWords(items, `^[a-z]+$`, 8)
-			state.PhraseGenerator = phrase.NewRandomGenerator(items, PhraseLength)
+			state.PhraseGenerator = phrase.NewRandomGenerator(items, params.PhraseLength)
 		}
 
 		if len(items) == 0 {

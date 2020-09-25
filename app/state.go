@@ -10,8 +10,6 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-const PhraseLength = 100
-
 type Typo struct {
 	Expected string `json:"expected"`
 	Actual   string `json:"actual"`
@@ -28,7 +26,6 @@ type Phrase struct {
 }
 
 type State struct {
-	Seed            int64
 	PhraseGenerator phrase.Generator
 	Phrase          Phrase
 	Repeat          bool

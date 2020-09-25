@@ -22,7 +22,6 @@ Key bindings:
 
    ESC   quit
    C-F   skip forward to the next phrase
-   C-R   toggle repeat phrase mode
 `
 
 func Execute() {
@@ -48,6 +47,9 @@ func Execute() {
 	)
 	pf.StringVarP(&params.Sourcetext, "text", "t", "",
 		"source text to train on",
+	)
+	pf.IntVarP(&params.PhraseLength, "length", "l", 50,
+		"Lenght of random phrase to train on",
 	)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
