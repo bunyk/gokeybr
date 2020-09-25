@@ -1,5 +1,5 @@
 // only pure code in this file (no side effects)
-package main
+package app
 
 import (
 	"time"
@@ -26,7 +26,6 @@ type Phrase struct {
 }
 
 type State struct {
-	Codelines       bool
 	Seed            int64
 	PhraseGenerator PhraseFunc
 	Phrase          Phrase
@@ -36,7 +35,7 @@ type State struct {
 func reduce(s State, msg Message, now time.Time) (State, []Command) {
 	switch m := msg.(type) {
 	case error:
-		return s, []Command{Exit{GoodbyeMessage: m.Error()}}
+		return s, []Command{ExitCmd{GoodbyeMessage: m.Error()}}
 	case termbox.Event:
 		return reduceEvent(s, m, now)
 	}
@@ -46,7 +45,7 @@ func reduce(s State, msg Message, now time.Time) (State, []Command) {
 
 func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		return s, []Command{Exit{GoodbyeMessage: "bye!"}}
+		return s, []Command{ExitCmd{GoodbyeMessage: "bye!"}}
 	}
 
 	if s.Phrase.StartedAt.IsZero() {
@@ -176,4 +175,11 @@ func (p *Phrase) expected() rune {
 
 	expected, _ := utf8.DecodeRuneInString(p.Text[len(p.Input):])
 	return expected
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

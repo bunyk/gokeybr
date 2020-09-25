@@ -1,5 +1,5 @@
 // contains all commands (side effects)
-package main
+package app
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ type Interrupt struct {
 	Delay time.Duration
 }
 
-type Exit struct {
+type ExitCmd struct {
 	Status         int
 	GoodbyeMessage string
 }
@@ -28,11 +28,12 @@ func RunCommand(cmd Command) []Message {
 	switch c := cmd.(type) {
 	case Interrupt:
 		return interrupt(c.Delay)
-	case Exit:
-		return exit(c.Status, c.GoodbyeMessage)
+	case ExitCmd:
+		Exit(c.Status, c.GoodbyeMessage)
+		return noMessages
 	}
 
-	exit(1, fmt.Sprintf("Cannot handle command of type %T", cmd))
+	Exit(1, fmt.Sprintf("Cannot handle command of type %T", cmd))
 	return noMessages
 }
 
@@ -43,7 +44,7 @@ func interrupt(d time.Duration) []Message {
 	return noMessages
 }
 
-func exit(status int, message string) []Message {
+func Exit(status int, message string) {
 	termbox.Close()
 
 	if message != "" {
@@ -51,6 +52,4 @@ func exit(status int, message string) []Message {
 	}
 
 	os.Exit(status)
-
-	return noMessages
 }

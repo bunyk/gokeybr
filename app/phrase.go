@@ -1,5 +1,5 @@
 // only pure code in this file (no side effects)
-package main
+package app
 
 import (
 	"bufio"
