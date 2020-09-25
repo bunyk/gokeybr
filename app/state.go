@@ -28,7 +28,6 @@ type Phrase struct {
 type State struct {
 	PhraseGenerator phrase.Generator
 	Phrase          Phrase
-	Repeat          bool
 }
 
 func reduce(s State, msg Message, now time.Time) (State, []Command) {
@@ -56,8 +55,6 @@ func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 		return reduceBackspace(s)
 	case termbox.KeyCtrlF:
 		s = resetPhrase(s, true)
-	case termbox.KeyCtrlR:
-		s.Repeat = !s.Repeat
 	case termbox.KeyEnter, termbox.KeyCtrlJ:
 		return reduceEnter(s, now)
 	default:
@@ -124,7 +121,7 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 }
 
 func resetPhrase(state State, forceNext bool) State {
-	if !state.Repeat || forceNext {
+	if forceNext {
 		state.PhraseGenerator.Phrase() // Just to update seed
 	}
 	phrase := state.PhraseGenerator.Phrase()

@@ -53,11 +53,7 @@ func render(s State) {
 	write(text(spaced(s.Phrase.Input[byteOffset:])).
 		X(x + runeOffset).Y(h / 2).Fg(black).Bg(red))
 
-	if s.Repeat {
-		write(text("Repeating phrase").X(w - 1).Y(1).Align(Right))
-	}
-
-	seconds := time.Now().Sub(s.Phrase.StartedAt).Seconds()
+	seconds := time.Since(s.Phrase.StartedAt).Seconds()
 	errorsText := text("%3d errors", s.Phrase.Errors).
 		Y(h/2 + 4).Fg(termbox.ColorDefault)
 	secondsText := text("%4.1f seconds", seconds).

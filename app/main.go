@@ -44,7 +44,7 @@ func InitState(params models.Parameters) State {
 	state := *NewState(phrase.DefaultGenerator)
 
 	if len(params.Sourcetext) > 0 {
-		state.PhraseGenerator = phrase.StaticGenerator{params.Sourcetext}
+		state.PhraseGenerator = phrase.StaticGenerator{Text: params.Sourcetext}
 		state = resetPhrase(state, false)
 	} else {
 		items, err := phrase.ReadFileLines(params.Sourcefile)
