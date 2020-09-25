@@ -45,8 +45,8 @@ func render(s State) {
 
 	byteOffset, runeOffset := errorOffset(s.Phrase.Text, s.Phrase.Input)
 
-	x := (w / 2) - (utf8.RuneCountInString(s.Phrase.Text) / 2)
-	write(text(s.Phrase.Text + string('⏎')).X(x).Y(h / 2).Fg(white))
+	// x := (w / 2) - (utf8.RuneCountInString(s.Phrase.Text) / 2)
+	write(text(s.Phrase.Text + string('⏎')).X(w / 2).Align(Center).Y(h / 2).Fg(white))
 
 	write(text(spaced(s.Phrase.Input[:byteOffset])).
 		X(x).Y(h / 2).Fg(green))
