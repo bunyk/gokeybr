@@ -10,11 +10,6 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type Typo struct {
-	Expected string `json:"expected"`
-	Actual   string `json:"actual"`
-}
-
 type Phrase struct {
 	Text       string
 	Input      string
@@ -22,7 +17,6 @@ type Phrase struct {
 	FailedAt   time.Time
 	FinishedAt time.Time
 	Errors     int
-	Typos      []Typo
 }
 
 type State struct {
@@ -104,14 +98,6 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 		return s, Noop
 	}
 
-	if exp != 0 {
-		s.Phrase.Typos = append(
-			s.Phrase.Typos, Typo{
-				Expected: string(exp),
-				Actual:   string(ch),
-			})
-	}
-
 	s.Phrase.Errors++
 	s.Phrase.FailedAt = now
 
@@ -128,24 +114,6 @@ func resetPhrase(state State, forceNext bool) State {
 	state.Phrase = *NewPhrase(phrase)
 
 	return state
-}
-
-func errorOffset(text string, input string) (int, int) {
-	runeOffset := 0
-	for i, tr := range text {
-		if i >= len(input) {
-			return len(input), runeOffset
-		}
-
-		ir, _ := utf8.DecodeRuneInString(input[i:])
-		if ir != tr {
-			return i, runeOffset
-		}
-
-		runeOffset++
-	}
-
-	return min(len(input), len(text)), runeOffset
 }
 
 func NewState(phraseGenerator phrase.Generator) *State {
@@ -169,11 +137,4 @@ func (p *Phrase) expected() rune {
 
 	expected, _ := utf8.DecodeRuneInString(p.Text[len(p.Input):])
 	return expected
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

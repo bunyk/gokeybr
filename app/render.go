@@ -43,25 +43,51 @@ func render(s State) {
 
 	w, h := termbox.Size()
 
-	byteOffset, runeOffset := errorOffset(s.Phrase.Text, s.Phrase.Input)
+	done, wrong, todo := compareInput(s.Phrase.Text, s.Phrase.Input)
+	write3colors(done, wrong, todo, 2, 2, w-5)
 
-	// x := (w / 2) - (utf8.RuneCountInString(s.Phrase.Text) / 2)
-	write(text(s.Phrase.Text + string('⏎')).X(w / 2).Align(Center).Y(h / 2).Fg(white))
+	// Stats:
+	secondsText := text("Go!")
+	if !s.Phrase.StartedAt.IsZero() {
+		seconds := time.Since(s.Phrase.StartedAt).Seconds()
+		secondsText = text("%4.1f seconds", seconds)
+	}
+	write(secondsText.X(w/2 + 1).Y(h - 1).Align(Center))
 
-	write(text(spaced(s.Phrase.Input[:byteOffset])).
-		X(x).Y(h / 2).Fg(green))
-	write(text(spaced(s.Phrase.Input[byteOffset:])).
-		X(x + runeOffset).Y(h / 2).Fg(black).Bg(red))
-
-	seconds := time.Since(s.Phrase.StartedAt).Seconds()
-	errorsText := text("%3d errors", s.Phrase.Errors).
-		Y(h/2 + 4).Fg(termbox.ColorDefault)
-	secondsText := text("%4.1f seconds", seconds).
-		Y(h/2 + 4)
-
-	write(errorsText.X(w/2 - 1).Align(Right))
-	write(secondsText.X(w/2 + 1))
+	write(text("%3d errors", s.Phrase.Errors).
+		X(w - 1).
+		Y(h - 1).
+		Align(Right).
+		Fg(termbox.ColorDefault),
+	)
 }
+
+// Compare input with required text and return properly typed part, wrongly typed, and part to type
+func compareInput(text, input string) (done, wrong, todo string) {
+	ri := []rune(input)
+	li := len(ri)
+	rt := []rune(text)
+	for i, tr := range rt {
+		if i >= li {
+			return input, "", string(rt[i:])
+		}
+		if tr != ri[i] {
+			done = string(rt[:i])
+			wrong = string(ri[i:])
+			if li < len(rt) {
+				todo = string(rt[li:])
+			}
+			return
+		}
+	}
+	done = text
+	if li > len(rt) {
+		wrong = string(ri[len(rt):])
+	}
+	return
+}
+
+// errorOffset returns position in bytes and then in runes, where
 
 func text(t string, args ...interface{}) *printSpec {
 	s := &printSpec{}
@@ -74,6 +100,9 @@ func text(t string, args ...interface{}) *printSpec {
 }
 
 func write(spec *printSpec) {
+	if spec == nil {
+		return
+	}
 	var x int
 	switch spec.align {
 	case Left:
@@ -90,8 +119,27 @@ func write(spec *printSpec) {
 	}
 }
 
+func write3colors(done, wrong, todo string, x, y, w int) {
+	cursorX := x
+	cursorY := y
+	putS := func(s string, fg, bg termbox.Attribute) {
+		for _, c := range s {
+			termbox.SetCell(cursorX, cursorY, c, fg, bg)
+			cursorX++
+			if cursorX >= x+w {
+				cursorX = x
+				cursorY++
+			}
+		}
+	}
+
+	putS(spaced(done), green, 0)
+	putS(spaced(wrong), black, red)
+	putS(todo, white, 0)
+}
+
 func spaced(s string) string {
-	return strings.Replace(s, " ", "␣", -1)
+	return strings.ReplaceAll(s, " ", "␣")
 }
 
 func (p *printSpec) Align(align Align) *printSpec {
