@@ -130,6 +130,7 @@ func write3colors(done, wrong, todo string, x, y, w int) {
 
 	putS(spaced(done), green, 0)
 	putS(spaced(wrong), black, red)
+	termbox.SetCursor(cursorX, cursorY)
 	putS(todo, white, 0)
 }
 
