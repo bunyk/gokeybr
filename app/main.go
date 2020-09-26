@@ -77,18 +77,9 @@ func (a *App) Run() {
 	}
 }
 
-func runCommands(state State, commands []Command) State {
-	for _, command := range commands {
-		state = reduceMessages(state, RunCommand(command), time.Now())
-	}
-
-	return state
-}
-
 func reduceMessages(state State, messages []Message, now time.Time) State {
 	for _, message := range messages {
-		newState, commands := reduce(state, message, time.Now())
-		state = runCommands(newState, commands)
+		state = reduce(state, message, time.Now())
 	}
 
 	return state

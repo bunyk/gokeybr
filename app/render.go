@@ -10,10 +10,6 @@ import (
 )
 
 const (
-	ScoreHighlightDuration = time.Second * 3
-)
-
-const (
 	black = termbox.ColorBlack
 	red   = termbox.ColorRed
 	green = termbox.ColorGreen
@@ -62,7 +58,8 @@ func render(s State) {
 	)
 }
 
-// Compare input with required text and return properly typed part, wrongly typed, and part to type
+// compareInput with required text and return
+// properly typed part, wrongly typed part, and part that is left to type
 func compareInput(text, input string) (done, wrong, todo string) {
 	ri := []rune(input)
 	li := len(ri)
@@ -86,8 +83,6 @@ func compareInput(text, input string) (done, wrong, todo string) {
 	}
 	return
 }
-
-// errorOffset returns position in bytes and then in runes, where
 
 func text(t string, args ...interface{}) *printSpec {
 	s := &printSpec{}

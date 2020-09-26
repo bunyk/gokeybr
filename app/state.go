@@ -24,20 +24,22 @@ type State struct {
 	Phrase          Phrase
 }
 
-func reduce(s State, msg Message, now time.Time) (State, []Command) {
+func reduce(s State, msg Message, now time.Time) State {
 	switch m := msg.(type) {
 	case error:
-		return s, []Command{ExitCmd{GoodbyeMessage: m.Error()}}
+		Exit(1, m.Error())
+		return s
 	case termbox.Event:
 		return reduceEvent(s, m, now)
 	}
 
-	return s, Noop
+	return s
 }
 
-func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
+func reduceEvent(s State, ev termbox.Event, now time.Time) State {
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		return s, []Command{ExitCmd{GoodbyeMessage: "bye!"}}
+		Exit(0, "bye!")
+		return s
 	}
 
 	if s.Phrase.StartedAt.IsZero() {
@@ -55,32 +57,32 @@ func reduceEvent(s State, ev termbox.Event, now time.Time) (State, []Command) {
 		return reduceCharInput(s, ev, now)
 	}
 
-	return s, Noop
+	return s
 }
 
-func reduceBackspace(s State) (State, []Command) {
+func reduceBackspace(s State) State {
 	if len(s.Phrase.Input) == 0 {
-		return s, Noop
+		return s
 	}
 
 	_, l := utf8.DecodeLastRuneInString(s.Phrase.Input)
 	s.Phrase.Input = s.Phrase.Input[:len(s.Phrase.Input)-l]
-	return s, Noop
+	return s
 }
 
-func reduceEnter(s State, now time.Time) (State, []Command) {
+func reduceEnter(s State, now time.Time) State {
 	if s.Phrase.Input != s.Phrase.Text {
-		return s, Noop
+		return s
 	}
 
 	s.Phrase.FinishedAt = now
 
 	s = resetPhrase(s, false)
 
-	return s, []Command{Interrupt{ScoreHighlightDuration}}
+	return s
 }
 
-func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command) {
+func reduceCharInput(s State, ev termbox.Event, now time.Time) State {
 	var ch rune
 	if ev.Key == termbox.KeySpace {
 		ch = ' '
@@ -89,13 +91,13 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 	}
 
 	if ch == 0 {
-		return s, Noop
+		return s
 	}
 
 	exp := s.Phrase.expected()
 	if ch == exp {
 		s.Phrase.Input += string(ch)
-		return s, Noop
+		return s
 	}
 
 	s.Phrase.Errors++
@@ -103,7 +105,7 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) (State, []Command
 
 	// normal mode
 	s.Phrase.Input += string(ch)
-	return s, Noop
+	return s
 }
 
 func resetPhrase(state State, forceNext bool) State {
