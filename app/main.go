@@ -73,27 +73,21 @@ func InitState(params models.Parameters) State {
 func (a *App) Run() {
 	for {
 		render(a.state)
-		a.state = reduceMessages(a.state, waitForEvent(), time.Now())
+		for _, msg := range waitForEvent() {
+			a.state = reduceEvent(a.state, msg, time.Now())
+		}
 	}
 }
 
-func reduceMessages(state State, messages []Message, now time.Time) State {
-	for _, message := range messages {
-		state = reduce(state, message, time.Now())
-	}
-
-	return state
-}
-
-func waitForEvent() []Message {
+func waitForEvent() []termbox.Event {
 	ev := termbox.PollEvent()
 	switch ev.Type {
 	case termbox.EventKey:
-		return []Message{ev}
+		return []termbox.Event{ev}
 	case termbox.EventError:
 		panic(ev.Err)
 	case termbox.EventInterrupt:
 	}
 
-	return []Message{}
+	return []termbox.Event{}
 }

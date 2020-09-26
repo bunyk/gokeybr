@@ -2,6 +2,8 @@
 package app
 
 import (
+	"fmt"
+	"os"
 	"time"
 	"unicode/utf8"
 
@@ -22,18 +24,6 @@ type Phrase struct {
 type State struct {
 	PhraseGenerator phrase.Generator
 	Phrase          Phrase
-}
-
-func reduce(s State, msg Message, now time.Time) State {
-	switch m := msg.(type) {
-	case error:
-		Exit(1, m.Error())
-		return s
-	case termbox.Event:
-		return reduceEvent(s, m, now)
-	}
-
-	return s
 }
 
 func reduceEvent(s State, ev termbox.Event, now time.Time) State {
@@ -139,4 +129,10 @@ func (p *Phrase) expected() rune {
 
 	expected, _ := utf8.DecodeRuneInString(p.Text[len(p.Input):])
 	return expected
+}
+
+func Exit(status int, message string) {
+	termbox.Close()
+	fmt.Println(message)
+	os.Exit(status)
 }
