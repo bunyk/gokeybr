@@ -1,13 +1,14 @@
-package app
+package view
 
 import (
 	"fmt"
-	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/nsf/termbox-go"
 )
+
+const wordsPerChar = 0.2 // In computing WPM word is considered to be in avearge 5 characters long
 
 const (
 	black = termbox.ColorBlack
@@ -33,55 +34,32 @@ type printSpec struct {
 	align Align
 }
 
-func render(s State) {
+type DisplayableData struct {
+	Header    string
+	DoneText  []rune
+	WrongText []rune
+	TODOText  []rune
+	StartedAt time.Time
+}
+
+func Render(dd DisplayableData) {
 	_ = termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	defer termbox.Flush()
 
 	w, h := termbox.Size()
 
-	done, wrong, todo := compareInput(s.Phrase.Text, s.Phrase.Input)
-	write3colors(done, wrong, todo, 2, 2, w-5)
+	write(text("File: %s", dd.Header).X(1).Y(0).Bg(white).Fg(black))
+
+	write3colors(dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5)
 
 	// Stats:
-	secondsText := text("Go!")
-	if !s.Phrase.StartedAt.IsZero() {
-		seconds := time.Since(s.Phrase.StartedAt).Seconds()
-		secondsText = text("%4.1f seconds", seconds)
+	seconds := 0.0
+	wpm := 0.0
+	if !dd.StartedAt.IsZero() {
+		seconds = time.Since(dd.StartedAt).Seconds()
+		wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
 	}
-	write(secondsText.X(w/2 + 1).Y(h - 1).Align(Center))
-
-	write(text("%3d errors", s.Phrase.Errors).
-		X(w - 1).
-		Y(h - 1).
-		Align(Right).
-		Fg(termbox.ColorDefault),
-	)
-}
-
-// compareInput with required text and return
-// properly typed part, wrongly typed part, and part that is left to type
-func compareInput(text, input string) (done, wrong, todo string) {
-	ri := []rune(input)
-	li := len(ri)
-	rt := []rune(text)
-	for i, tr := range rt {
-		if i >= li {
-			return input, "", string(rt[i:])
-		}
-		if tr != ri[i] {
-			done = string(rt[:i])
-			wrong = string(ri[i:])
-			if li < len(rt) {
-				todo = string(rt[li:])
-			}
-			return
-		}
-	}
-	done = text
-	if li > len(rt) {
-		wrong = string(ri[len(rt):])
-	}
-	return
+	write(text("%4.1f sec, %4.1f wpm", seconds, wpm).X(w/2 + 1).Y(h - 1).Align(Center))
 }
 
 func text(t string, args ...interface{}) *printSpec {
@@ -114,11 +92,14 @@ func write(spec *printSpec) {
 	}
 }
 
-func write3colors(done, wrong, todo string, x, y, w int) {
+func write3colors(done, wrong, todo []rune, x, y, w int) {
 	cursorX := x
 	cursorY := y
-	putS := func(s string, fg, bg termbox.Attribute) {
+	putS := func(s []rune, fg, bg termbox.Attribute) {
 		for _, c := range s {
+			if c == ' ' {
+				c = '␣'
+			}
 			termbox.SetCell(cursorX, cursorY, c, fg, bg)
 			cursorX++
 			if cursorX >= x+w {
@@ -128,14 +109,10 @@ func write3colors(done, wrong, todo string, x, y, w int) {
 		}
 	}
 
-	putS(spaced(done), green, 0)
-	putS(spaced(wrong), black, red)
+	putS(done, green, 0)
+	putS(wrong, black, red)
 	termbox.SetCursor(cursorX, cursorY)
 	putS(todo, white, 0)
-}
-
-func spaced(s string) string {
-	return strings.ReplaceAll(s, " ", "␣")
 }
 
 func (p *printSpec) Align(align Align) *printSpec {

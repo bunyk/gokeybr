@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/bunyk/gokeybr/models"
 	"github.com/bunyk/gokeybr/phrase"
+	"github.com/bunyk/gokeybr/view"
 	"github.com/nsf/termbox-go"
 )
 
@@ -13,7 +13,15 @@ type App struct {
 	state State
 }
 
-func New(params models.Parameters) (*App, error) {
+// Parameters define arguments with which program started
+type Parameters struct {
+	Sourcefile   string // From where to read training text
+	Sourcetext   string // Training text itself (optional)
+	Codelines    bool   // Treat training text as code?
+	PhraseLength int    // default lenght for generated phrase
+}
+
+func New(params Parameters) (*App, error) {
 	a := &App{}
 
 	a.state = InitState(params)
@@ -40,13 +48,15 @@ func InitTermbox() error {
 	return nil
 }
 
-func InitState(params models.Parameters) State {
+func InitState(params Parameters) State {
 	state := *NewState(phrase.DefaultGenerator)
 
 	if len(params.Sourcetext) > 0 {
 		state.PhraseGenerator = phrase.StaticGenerator{Text: params.Sourcetext}
 		state = resetPhrase(state, false)
+		state.Header = params.Sourcetext
 	} else {
+		state.Header = params.Sourcefile
 		items, err := phrase.ReadFileLines(params.Sourcefile)
 		if err != nil {
 			log.Fatal(err)
@@ -72,7 +82,7 @@ func InitState(params models.Parameters) State {
 
 func (a *App) Run() {
 	for {
-		render(a.state)
+		view.Render(a.state.ToDisplay())
 		for _, msg := range waitForEvent() {
 			a.state = reduceEvent(a.state, msg, time.Now())
 		}

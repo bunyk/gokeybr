@@ -23,7 +23,8 @@ var compareIntputCases = []struct {
 func Test_compareInput(t *testing.T) {
 	for _, tc := range compareIntputCases {
 		t.Run(fmt.Sprintf("%#v+%#v", tc.text, tc.input), func(t *testing.T) {
-			done, wrong, todo := compareInput(tc.text, tc.input)
+			a, b, c := compareInput(tc.text, tc.input)
+			done, wrong, todo := string(a), string(b), string(c)
 			if done != tc.done || wrong != tc.wrong || todo != tc.todo {
 				t.Errorf("compareInput(%#v, %#v) returned %#v, %#v, %#v, want %#v %#v %#v",
 					tc.text, tc.input, done, wrong, todo, tc.done, tc.wrong, tc.todo,

@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/bunyk/gokeybr/app"
-	"github.com/bunyk/gokeybr/models"
 )
 
 const Help = `
@@ -25,7 +24,7 @@ Key bindings:
 `
 
 func Execute() {
-	params := models.Parameters{}
+	params := app.Parameters{}
 
 	var rootCmd = &cobra.Command{
 		Use:  "gokeybr",

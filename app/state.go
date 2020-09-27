@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bunyk/gokeybr/phrase"
+	"github.com/bunyk/gokeybr/view"
 
 	"github.com/nsf/termbox-go"
 )
@@ -22,8 +23,46 @@ type Phrase struct {
 }
 
 type State struct {
+	Header          string
 	PhraseGenerator phrase.Generator
 	Phrase          Phrase
+}
+
+func (s State) ToDisplay() view.DisplayableData {
+	done, wrong, todo := compareInput(s.Phrase.Text, s.Phrase.Input)
+	return view.DisplayableData{
+		Header:    s.Header,
+		DoneText:  done,
+		WrongText: wrong,
+		TODOText:  todo,
+		StartedAt: s.Phrase.StartedAt,
+	}
+}
+
+// compareInput with required text and return
+// properly typed part, wrongly typed part, and part that is left to type
+func compareInput(text, input string) (done, wrong, todo []rune) {
+	ri := []rune(input)
+	li := len(ri)
+	rt := []rune(text)
+	for i, tr := range rt {
+		if i >= li {
+			return ri, nil, rt[i:]
+		}
+		if tr != ri[i] {
+			done = rt[:i]
+			wrong = ri[i:]
+			if li < len(rt) {
+				todo = rt[li:]
+			}
+			return
+		}
+	}
+	done = rt
+	if li > len(rt) {
+		wrong = ri[len(rt):]
+	}
+	return
 }
 
 func reduceEvent(s State, ev termbox.Event, now time.Time) State {

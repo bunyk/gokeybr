@@ -17,3 +17,11 @@ go get github.com/bunyk/gokeybr
 ## Usage
 
 gokeybr --help
+
+## Code organization
+Code is split in following packages:
+
+- `cmd/` - is entry point of the program, handles parsing of arguments and starts app
+- `app/` - contains code of event loop and overall logic of app
+- `phrase/` - loading and generation of training texts
+- `view/` - anyting related to displaying information on the screen
