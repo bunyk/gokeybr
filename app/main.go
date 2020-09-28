@@ -23,18 +23,24 @@ type Parameters struct {
 func New(params Parameters) (*App, error) {
 	a := &App{}
 	var err error
-	a.state, err = InitState(params)
+	generator, err := phrase.NewGenerator(
+		params.Sourcefile, params.Sourcetext, params.Mode, params.PhraseLength,
+	)
 	if err != nil {
 		return a, err
 	}
-	err = InitTermbox()
+	a.state = newState(generator)
+	if err != nil {
+		return a, err
+	}
+	err = initTermbox()
 	if err != nil {
 		return a, err
 	}
 	return a, nil
 }
 
-func InitTermbox() error {
+func initTermbox() error {
 	err := termbox.Init()
 	if err != nil {
 		return err
@@ -49,20 +55,6 @@ func InitTermbox() error {
 		}
 	}()
 	return nil
-}
-
-func InitState(params Parameters) (State, error) {
-	state := State{}
-	var err error
-	state.PhraseGenerator, err = phrase.NewGenerator(
-		params.Sourcefile, params.Sourcetext, params.Mode, params.PhraseLength,
-	)
-	if err != nil {
-		return state, err
-	}
-	state = resetPhrase(state, false)
-
-	return state, nil
 }
 
 func (a *App) Run() {

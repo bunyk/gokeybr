@@ -48,7 +48,7 @@ func Render(dd DisplayableData) {
 
 	w, h := termbox.Size()
 
-	write(text("File: %s", dd.Header).X(1).Y(0).Bg(white).Fg(black))
+	write(text(dd.Header).X(1).Y(0).Bg(white).Fg(black))
 
 	write3colors(dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5)
 

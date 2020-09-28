@@ -124,6 +124,7 @@ func makeParagraphs(lines []string) []string {
 		if l == "" {
 			if len(buf) > 0 {
 				res = append(res, strings.TrimSpace(buf))
+				buf = ""
 			}
 		} else {
 			buf += "\n" + l

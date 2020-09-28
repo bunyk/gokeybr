@@ -23,15 +23,21 @@ type Phrase struct {
 }
 
 type State struct {
-	Header          string
 	PhraseGenerator phrase.Generator
 	Phrase          Phrase
+}
+
+func newState(generator phrase.Generator) State {
+	state := State{PhraseGenerator: generator}
+	state.resetPhrase()
+
+	return state
 }
 
 func (s State) ToDisplay() view.DisplayableData {
 	done, wrong, todo := compareInput(s.Phrase.Text, s.Phrase.Input)
 	return view.DisplayableData{
-		Header:    s.Header,
+		Header:    "Type the text below", // TODO: add more data here
 		DoneText:  done,
 		WrongText: wrong,
 		TODOText:  todo,
@@ -79,7 +85,7 @@ func reduceEvent(s State, ev termbox.Event, now time.Time) State {
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		return reduceBackspace(s)
 	case termbox.KeyCtrlF:
-		s = resetPhrase(s, true)
+		s.resetPhrase()
 	case termbox.KeyEnter, termbox.KeyCtrlJ:
 		return reduceEnter(s, now)
 	default:
@@ -106,7 +112,7 @@ func reduceEnter(s State, now time.Time) State {
 
 	s.Phrase.FinishedAt = now
 
-	s = resetPhrase(s, false)
+	s.resetPhrase()
 
 	return s
 }
@@ -137,19 +143,10 @@ func reduceCharInput(s State, ev termbox.Event, now time.Time) State {
 	return s
 }
 
-func resetPhrase(state State, forceNext bool) State {
-	if forceNext {
-		state.PhraseGenerator.Phrase() // Just to update seed
-	}
-	phrase := state.PhraseGenerator.Phrase()
-	state.Phrase = *NewPhrase(phrase)
-
-	return state
-}
-
-func NewPhrase(text string) *Phrase {
-	return &Phrase{
-		Text: text,
+func (s *State) resetPhrase() {
+	phrase := s.PhraseGenerator.Phrase()
+	s.Phrase = Phrase{
+		Text: phrase,
 	}
 }
 
