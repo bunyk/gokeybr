@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"unicode/utf8"
 
 	"github.com/bunyk/gokeybr/phrase"
 	"github.com/bunyk/gokeybr/view"
@@ -13,15 +12,11 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type Phrase struct {
-	Text      string
-	Input     string
-	StartedAt time.Time
-}
-
 type State struct {
 	PhraseGenerator phrase.Generator
-	Phrase          Phrase
+	Text            []rune
+	Input           []rune
+	StartedAt       time.Time
 }
 
 func newState(generator phrase.Generator) State {
@@ -32,38 +27,36 @@ func newState(generator phrase.Generator) State {
 }
 
 func (s State) ToDisplay() view.DisplayableData {
-	done, wrong, todo := compareInput(s.Phrase.Text, s.Phrase.Input)
+	done, wrong, todo := compareInput(s.Text, s.Input)
 	return view.DisplayableData{
-		Header:    "Type the text below", // TODO: add more data here
+		Header:    "Type the text below:", // TODO: add more data here
 		DoneText:  done,
 		WrongText: wrong,
 		TODOText:  todo,
-		StartedAt: s.Phrase.StartedAt,
+		StartedAt: s.StartedAt,
 	}
 }
 
 // compareInput with required text and return
 // properly typed part, wrongly typed part, and part that is left to type
-func compareInput(text, input string) (done, wrong, todo []rune) {
-	ri := []rune(input)
-	li := len(ri)
-	rt := []rune(text)
-	for i, tr := range rt {
+func compareInput(text, input []rune) (done, wrong, todo []rune) {
+	li := len(input)
+	for i, tr := range text {
 		if i >= li {
-			return ri, nil, rt[i:]
+			return input, nil, text[i:]
 		}
-		if tr != ri[i] {
-			done = rt[:i]
-			wrong = ri[i:]
-			if li < len(rt) {
-				todo = rt[li:]
+		if tr != input[i] {
+			done = text[:i]
+			wrong = input[i:]
+			if li < len(text) {
+				todo = text[li:]
 			}
 			return
 		}
 	}
-	done = rt
-	if li > len(rt) {
-		wrong = ri[len(rt):]
+	done = text
+	if li > len(text) {
+		wrong = input[len(text):]
 	}
 	return
 }
@@ -77,8 +70,8 @@ func (s *State) reduceEvent(ev termbox.Event) {
 		s.finish()
 	}
 
-	if s.Phrase.StartedAt.IsZero() {
-		s.Phrase.StartedAt = time.Now()
+	if s.StartedAt.IsZero() {
+		s.StartedAt = time.Now()
 	}
 
 	switch ev.Key {
@@ -86,25 +79,16 @@ func (s *State) reduceEvent(ev termbox.Event) {
 		s.reduceBackspace()
 	case termbox.KeyCtrlF:
 		s.resetPhrase()
-		s.reduceEnter()
 	default:
 		s.reduceCharInput(ev)
 	}
 }
 
 func (s *State) reduceBackspace() {
-	if len(s.Phrase.Input) == 0 {
+	if len(s.Input) == 0 {
 		return
 	}
-	_, l := utf8.DecodeLastRuneInString(s.Phrase.Input)
-	s.Phrase.Input = s.Phrase.Input[:len(s.Phrase.Input)-l]
-}
-
-func (s *State) reduceEnter() {
-	if s.Phrase.Input != s.Phrase.Text {
-		return
-	}
-	s.resetPhrase()
+	s.Input = s.Input[:len(s.Input)-1]
 }
 
 func (s *State) reduceCharInput(ev termbox.Event) {
@@ -121,30 +105,14 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 		return
 	}
 
-	exp := s.Phrase.expected()
-	if ch == exp {
-		s.Phrase.Input += string(ch)
-		return
-	}
-
-	// normal mode
-	s.Phrase.Input += string(ch)
+	s.Input = append(s.Input, ch)
 }
 
 func (s *State) resetPhrase() {
 	phrase := s.PhraseGenerator.Phrase()
-	s.Phrase = Phrase{
-		Text: phrase,
-	}
-}
-
-func (p *Phrase) expected() rune {
-	if len(p.Input) >= len(p.Text) {
-		return 0
-	}
-
-	expected, _ := utf8.DecodeRuneInString(p.Text[len(p.Input):])
-	return expected
+	s.Text = []rune(phrase)
+	s.Input = nil
+	s.StartedAt = time.Time{}
 }
 
 func Exit(status int, message string) {
