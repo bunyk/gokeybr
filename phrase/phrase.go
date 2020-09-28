@@ -33,29 +33,29 @@ func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, 
 	}
 	if kind == "paragraphs" {
 		items = makeParagraphs(items)
-		return &SequentialLineGenerator{Lines: items}, nil
+		return &sequentialLineGenerator{Lines: items}, nil
 	} else if kind == "words" {
-		return NewRandomGenerator(items, maxLength), nil
+		return newRandomGenerator(items, maxLength), nil
 	}
 	return nil, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, random)", kind)
 }
 
-// RandomGenerator composes a random phrase with given length from given words.
-type RandomGenerator struct {
+// randomGenerator composes a random phrase with given length from given words.
+type randomGenerator struct {
 	Words     []string
 	MinLength int
 	seed      int64
 }
 
-func NewRandomGenerator(words []string, minLength int) *RandomGenerator {
-	return &RandomGenerator{
+func newRandomGenerator(words []string, minLength int) *randomGenerator {
+	return &randomGenerator{
 		Words:     words,
 		MinLength: minLength,
 		seed:      time.Now().UnixNano(),
 	}
 }
 
-func (rg *RandomGenerator) Phrase() string {
+func (rg *randomGenerator) Phrase() string {
 	rand := rand.New(rand.NewSource(rg.seed))
 	var phrase []string
 	l := -1
@@ -68,12 +68,12 @@ func (rg *RandomGenerator) Phrase() string {
 	return strings.Join(phrase, " ")
 }
 
-type SequentialLineGenerator struct {
+type sequentialLineGenerator struct {
 	Lines       []string
 	CurrentLine int
 }
 
-func (slg *SequentialLineGenerator) Phrase() string {
+func (slg *sequentialLineGenerator) Phrase() string {
 	cl := slg.CurrentLine
 	slg.CurrentLine = (cl + 1) % len(slg.Lines)
 	return slg.Lines[cl]
@@ -121,6 +121,9 @@ func makeParagraphs(lines []string) []string {
 		} else {
 			buf += "\n" + l
 		}
+	}
+	if len(buf) > 0 {
+		res = append(res, strings.TrimSpace(buf))
 	}
 	return res
 }
