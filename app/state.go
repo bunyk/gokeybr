@@ -62,7 +62,13 @@ func compareInput(text, input []rune) (done, wrong, todo []rune) {
 }
 
 func (s *State) finish() {
-	Exit(0, "bye!")
+	typed := len(s.Input)
+	elapsed := time.Since(s.StartedAt).Seconds()
+	report := fmt.Sprintf(
+		`Typed %d characters in %4.1f seconds. Speed: %4.1f wpm`,
+		typed, elapsed, float64(typed)/elapsed*60.0/5.0,
+	)
+	Exit(0, report)
 }
 
 func (s *State) reduceEvent(ev termbox.Event) {
@@ -106,6 +112,9 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 	}
 
 	s.Input = append(s.Input, ch)
+	if string(s.Input) == string(s.Text) { // TODO: Do more efficiently
+		s.finish()
+	}
 }
 
 func (s *State) resetPhrase() {

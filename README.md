@@ -16,7 +16,7 @@ go get github.com/bunyk/gokeybr
 
 ## Usage
 
-gokeybr --help
+`gokeybr --help` will give you the latest & most true information.
 
 ## Code organization
 Code is split in following packages:
