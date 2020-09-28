@@ -61,7 +61,7 @@ func (a *App) Run() {
 	for {
 		view.Render(a.state.ToDisplay())
 		for _, msg := range waitForEvent() {
-			a.state = reduceEvent(a.state, msg, time.Now())
+			a.state.reduceEvent(msg)
 		}
 	}
 }

@@ -40,14 +40,6 @@ func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, 
 	return nil, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, random)", kind)
 }
 
-type staticGenerator struct {
-	Text string
-}
-
-func (sg staticGenerator) Phrase() string {
-	return sg.Text
-}
-
 // RandomGenerator composes a random phrase with given length from given words.
 type RandomGenerator struct {
 	Words     []string

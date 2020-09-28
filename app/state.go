@@ -14,12 +14,9 @@ import (
 )
 
 type Phrase struct {
-	Text       string
-	Input      string
-	StartedAt  time.Time
-	FailedAt   time.Time
-	FinishedAt time.Time
-	Errors     int
+	Text      string
+	Input     string
+	StartedAt time.Time
 }
 
 type State struct {
@@ -71,76 +68,67 @@ func compareInput(text, input string) (done, wrong, todo []rune) {
 	return
 }
 
-func reduceEvent(s State, ev termbox.Event, now time.Time) State {
+func (s *State) finish() {
+	Exit(0, "bye!")
+}
+
+func (s *State) reduceEvent(ev termbox.Event) {
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		Exit(0, "bye!")
-		return s
+		s.finish()
 	}
 
 	if s.Phrase.StartedAt.IsZero() {
-		s.Phrase.StartedAt = now
+		s.Phrase.StartedAt = time.Now()
 	}
 
 	switch ev.Key {
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		return reduceBackspace(s)
+		s.reduceBackspace()
 	case termbox.KeyCtrlF:
 		s.resetPhrase()
-	case termbox.KeyEnter, termbox.KeyCtrlJ:
-		return reduceEnter(s, now)
+		s.reduceEnter()
 	default:
-		return reduceCharInput(s, ev, now)
+		s.reduceCharInput(ev)
 	}
-
-	return s
 }
 
-func reduceBackspace(s State) State {
+func (s *State) reduceBackspace() {
 	if len(s.Phrase.Input) == 0 {
-		return s
+		return
 	}
-
 	_, l := utf8.DecodeLastRuneInString(s.Phrase.Input)
 	s.Phrase.Input = s.Phrase.Input[:len(s.Phrase.Input)-l]
-	return s
 }
 
-func reduceEnter(s State, now time.Time) State {
+func (s *State) reduceEnter() {
 	if s.Phrase.Input != s.Phrase.Text {
-		return s
+		return
 	}
-
-	s.Phrase.FinishedAt = now
-
 	s.resetPhrase()
-
-	return s
 }
 
-func reduceCharInput(s State, ev termbox.Event, now time.Time) State {
+func (s *State) reduceCharInput(ev termbox.Event) {
 	var ch rune
 	if ev.Key == termbox.KeySpace {
 		ch = ' '
+	} else if ev.Key == termbox.KeyEnter || ev.Key == termbox.KeyCtrlJ {
+		ch = '\n'
 	} else {
 		ch = ev.Ch
 	}
 
 	if ch == 0 {
-		return s
+		return
 	}
 
 	exp := s.Phrase.expected()
 	if ch == exp {
 		s.Phrase.Input += string(ch)
-		return s
+		return
 	}
-
-	s.Phrase.Errors++
-	s.Phrase.FailedAt = now
 
 	// normal mode
 	s.Phrase.Input += string(ch)
-	return s
 }
 
 func (s *State) resetPhrase() {
