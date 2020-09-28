@@ -15,58 +15,36 @@ import (
 type State struct {
 	PhraseGenerator phrase.Generator
 	Text            []rune
-	Input           []rune
+	InputPosition   int
+	ErrorInput      []rune
 	StartedAt       time.Time
 }
 
 func newState(generator phrase.Generator) State {
-	state := State{PhraseGenerator: generator}
+	state := State{
+		PhraseGenerator: generator,
+		ErrorInput:      make([]rune, 0, 20),
+	}
 	state.resetPhrase()
 
 	return state
 }
 
 func (s State) ToDisplay() view.DisplayableData {
-	done, wrong, todo := compareInput(s.Text, s.Input)
 	return view.DisplayableData{
 		Header:    "Type the text below:", // TODO: add more data here
-		DoneText:  done,
-		WrongText: wrong,
-		TODOText:  todo,
+		DoneText:  s.Text[:s.InputPosition],
+		WrongText: s.ErrorInput,
+		TODOText:  s.Text[s.InputPosition:],
 		StartedAt: s.StartedAt,
 	}
 }
 
-// compareInput with required text and return
-// properly typed part, wrongly typed part, and part that is left to type
-func compareInput(text, input []rune) (done, wrong, todo []rune) {
-	li := len(input)
-	for i, tr := range text {
-		if i >= li {
-			return input, nil, text[i:]
-		}
-		if tr != input[i] {
-			done = text[:i]
-			wrong = input[i:]
-			if li < len(text) {
-				todo = text[li:]
-			}
-			return
-		}
-	}
-	done = text
-	if li > len(text) {
-		wrong = input[len(text):]
-	}
-	return
-}
-
-func (s *State) finish() {
-	typed := len(s.Input)
+func (s State) finish() {
 	elapsed := time.Since(s.StartedAt).Seconds()
 	report := fmt.Sprintf(
 		`Typed %d characters in %4.1f seconds. Speed: %4.1f wpm`,
-		typed, elapsed, float64(typed)/elapsed*60.0/5.0,
+		s.InputPosition, elapsed, float64(s.InputPosition)/elapsed*60.0/5.0,
 	)
 	Exit(0, report)
 }
@@ -91,10 +69,10 @@ func (s *State) reduceEvent(ev termbox.Event) {
 }
 
 func (s *State) reduceBackspace() {
-	if len(s.Input) == 0 {
+	if len(s.ErrorInput) == 0 {
 		return
 	}
-	s.Input = s.Input[:len(s.Input)-1]
+	s.ErrorInput = s.ErrorInput[:len(s.ErrorInput)-1]
 }
 
 func (s *State) reduceCharInput(ev termbox.Event) {
@@ -111,8 +89,12 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 		return
 	}
 
-	s.Input = append(s.Input, ch)
-	if string(s.Input) == string(s.Text) { // TODO: Do more efficiently
+	if ch == s.Text[s.InputPosition] { // correct
+		s.InputPosition++
+	} else { // wrong
+		s.ErrorInput = append(s.ErrorInput, ch)
+	}
+	if s.InputPosition >= len(s.Text) {
 		s.finish()
 	}
 }
@@ -120,7 +102,8 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 func (s *State) resetPhrase() {
 	phrase := s.PhraseGenerator.Phrase()
 	s.Text = []rune(phrase)
-	s.Input = nil
+	s.InputPosition = 0
+	s.ErrorInput = s.ErrorInput[:0] // Clear errors
 	s.StartedAt = time.Time{}
 }
 
