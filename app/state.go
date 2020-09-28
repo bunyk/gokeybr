@@ -1,4 +1,3 @@
-// only pure code in this file (no side effects)
 package app
 
 import (

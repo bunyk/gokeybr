@@ -17,6 +17,10 @@ Examples:
 
        history | go run main.go -f -
 
+   Or train to type random quote, like on typeracer:
+   
+       fortune | go run main.go -l 1000 -f -
+
 Key bindings:
 
    ESC   quit

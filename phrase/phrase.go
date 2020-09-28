@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// TODO: reorganize this to better fit single session per single run
+// Maybe limit/offset for typing and report about offset in the end?
+// Or save offset in stats...
+
 // Generator generates a phrase
 type Generator interface {
 	Phrase() string
@@ -32,7 +36,7 @@ func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, 
 		items = []string{"the quick brown fox jumps over the lazy dog"}
 	}
 	if kind == "paragraphs" {
-		items = makeParagraphs(items)
+		items = makeParagraphs(items, maxLength)
 		return &sequentialLineGenerator{Lines: items}, nil
 	} else if kind == "words" {
 		return newRandomGenerator(items, maxLength), nil
@@ -108,18 +112,18 @@ func readFileLines(filename string) (lines []string, err error) {
 
 }
 
-func makeParagraphs(lines []string) []string {
+func makeParagraphs(lines []string, maxLength int) []string {
 	res := make([]string, 0)
 	buf := ""
 	for _, l := range lines {
 		l = strings.TrimSpace(l)
-		if l == "" {
+		if len(buf)+len(l)+1 < maxLength {
+			buf += "\n" + l
+		} else {
 			if len(buf) > 0 {
 				res = append(res, strings.TrimSpace(buf))
-				buf = ""
+				buf = l
 			}
-		} else {
-			buf += "\n" + l
 		}
 	}
 	if len(buf) > 0 {
