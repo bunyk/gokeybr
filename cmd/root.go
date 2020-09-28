@@ -15,7 +15,7 @@ Examples:
 
    How to run to train your bash commands typing speed, customized for your commands:
 
-       history | go run main.go -c -f -
+       history | go run main.go -f -
 
 Key bindings:
 
@@ -38,11 +38,11 @@ func Execute() {
 		},
 	}
 	pf := rootCmd.PersistentFlags()
-	pf.StringVarP(&params.Sourcefile, "source", "f", "/usr/share/dict/words",
+	pf.StringVarP(&params.Sourcefile, "file", "f", "",
 		"path to file with source text",
 	)
-	pf.BoolVarP(&params.Codelines, "code", "c", false,
-		"treat -f FILE as lines of code",
+	pf.StringVarP(&params.Mode, "mode", "m", "paragraphs",
+		"mode in which to use source text: paragraphs or words ",
 	)
 	pf.StringVarP(&params.Sourcetext, "text", "t", "",
 		"source text to train on",

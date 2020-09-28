@@ -147,14 +147,6 @@ func resetPhrase(state State, forceNext bool) State {
 	return state
 }
 
-func NewState(phraseGenerator phrase.Generator) *State {
-	s := resetPhrase(State{
-		PhraseGenerator: phraseGenerator,
-	}, false)
-
-	return &s
-}
-
 func NewPhrase(text string) *Phrase {
 	return &Phrase{
 		Text: text,
@@ -171,7 +163,9 @@ func (p *Phrase) expected() rune {
 }
 
 func Exit(status int, message string) {
-	termbox.Close()
+	if termbox.IsInit {
+		termbox.Close()
+	}
 	fmt.Println(message)
 	os.Exit(status)
 }

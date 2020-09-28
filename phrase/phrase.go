@@ -1,7 +1,14 @@
 package phrase
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 )
@@ -11,15 +18,35 @@ type Generator interface {
 	Phrase() string
 }
 
-type StaticGenerator struct {
+func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, error) {
+	var items []string
+	var err error
+	if len(sourcetext) > 0 {
+		items = strings.Split(sourcetext, "\n")
+	} else if len(filename) > 0 {
+		items, err = readFileLines(filename)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		items = []string{"the quick brown fox jumps over the lazy dog"}
+	}
+	if kind == "paragraphs" {
+		items = makeParagraphs(items)
+		return &SequentialLineGenerator{Lines: items}, nil
+	} else if kind == "words" {
+		return NewRandomGenerator(items, maxLength), nil
+	}
+	return nil, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, random)", kind)
+}
+
+type staticGenerator struct {
 	Text string
 }
 
-func (sg StaticGenerator) Phrase() string {
+func (sg staticGenerator) Phrase() string {
 	return sg.Text
 }
-
-var DefaultGenerator = StaticGenerator{"the quick brown fox jumps over the lazy dog"}
 
 // RandomGenerator composes a random phrase with given length from given words.
 type RandomGenerator struct {
@@ -58,4 +85,49 @@ func (slg *SequentialLineGenerator) Phrase() string {
 	cl := slg.CurrentLine
 	slg.CurrentLine = (cl + 1) % len(slg.Lines)
 	return slg.Lines[cl]
+}
+
+func readFileLines(filename string) (lines []string, err error) {
+	var data []byte
+	if filename == "-" {
+		data, err = ioutil.ReadAll(os.Stdin)
+	} else {
+		data, err = ioutil.ReadFile(filename)
+	}
+	if err != nil {
+		return
+	}
+
+	reader := bufio.NewReader(bytes.NewBuffer(data))
+	for {
+		line, rerr := reader.ReadString('\n')
+		if rerr != nil {
+			if rerr == io.EOF {
+				if len(lines) == 0 {
+					err = errors.New("datafile contains no usable data")
+				}
+				return
+			}
+			err = rerr
+			return
+		}
+		lines = append(lines, line[:len(line)-1])
+	}
+
+}
+
+func makeParagraphs(lines []string) []string {
+	res := make([]string, 0)
+	buf := ""
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			if len(buf) > 0 {
+				res = append(res, strings.TrimSpace(buf))
+			}
+		} else {
+			buf += "\n" + l
+		}
+	}
+	return res
 }

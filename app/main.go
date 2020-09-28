@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log"
 	"time"
 
 	"github.com/bunyk/gokeybr/phrase"
@@ -17,15 +16,19 @@ type App struct {
 type Parameters struct {
 	Sourcefile   string // From where to read training text
 	Sourcetext   string // Training text itself (optional)
-	Codelines    bool   // Treat training text as code?
+	Mode         string // Treat training text as paragraphs, or set of words to create random texts
 	PhraseLength int    // default lenght for generated phrase
 }
 
 func New(params Parameters) (*App, error) {
 	a := &App{}
-
-	a.state = InitState(params)
-	if err := InitTermbox(); err != nil {
+	var err error
+	a.state, err = InitState(params)
+	if err != nil {
+		return a, err
+	}
+	err = InitTermbox()
+	if err != nil {
 		return a, err
 	}
 	return a, nil
@@ -48,36 +51,18 @@ func InitTermbox() error {
 	return nil
 }
 
-func InitState(params Parameters) State {
-	state := *NewState(phrase.DefaultGenerator)
-
-	if len(params.Sourcetext) > 0 {
-		state.PhraseGenerator = phrase.StaticGenerator{Text: params.Sourcetext}
-		state = resetPhrase(state, false)
-		state.Header = params.Sourcetext
-	} else {
-		state.Header = params.Sourcefile
-		items, err := phrase.ReadFileLines(params.Sourcefile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// state = reduceDatasource(state, data, params.Codelines)
-		if params.Codelines {
-			items = phrase.FilterWords(items, `^[^/][^/]`, 80)
-			state.PhraseGenerator = &phrase.SequentialLineGenerator{Lines: items}
-		} else {
-			items = phrase.FilterWords(items, `^[a-z]+$`, 8)
-			state.PhraseGenerator = phrase.NewRandomGenerator(items, params.PhraseLength)
-		}
-
-		if len(items) == 0 {
-			log.Fatal("datafile contains no usable data")
-		}
-
-		state = resetPhrase(state, false)
+func InitState(params Parameters) (State, error) {
+	state := State{}
+	var err error
+	state.PhraseGenerator, err = phrase.NewGenerator(
+		params.Sourcefile, params.Sourcetext, params.Mode, params.PhraseLength,
+	)
+	if err != nil {
+		return state, err
 	}
+	state = resetPhrase(state, false)
 
-	return state
+	return state, nil
 }
 
 func (a *App) Run() {

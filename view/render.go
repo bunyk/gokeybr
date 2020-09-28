@@ -97,6 +97,12 @@ func write3colors(done, wrong, todo []rune, x, y, w int) {
 	cursorY := y
 	putS := func(s []rune, fg, bg termbox.Attribute) {
 		for _, c := range s {
+			if c == '\n' {
+				termbox.SetCell(cursorX, cursorY, '⏎', fg, bg)
+				cursorX = x
+				cursorY++
+				continue
+			}
 			if c == ' ' {
 				c = '␣'
 			}
