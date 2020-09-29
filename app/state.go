@@ -2,18 +2,21 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
-	"github.com/bunyk/gokeybr/phrase"
-	"github.com/bunyk/gokeybr/view"
-
 	"github.com/nsf/termbox-go"
+
+	"github.com/bunyk/gokeybr/phrase"
+	"github.com/bunyk/gokeybr/stats"
+	"github.com/bunyk/gokeybr/view"
 )
 
 type State struct {
 	PhraseGenerator phrase.Generator
 	Text            []rune
+	Timeline        []float64
 	InputPosition   int
 	ErrorInput      []rune
 	StartedAt       time.Time
@@ -40,12 +43,18 @@ func (s State) ToDisplay() view.DisplayableData {
 }
 
 func (s State) finish() {
-	elapsed := time.Since(s.StartedAt).Seconds()
-	report := fmt.Sprintf(
-		`Typed %d characters in %4.1f seconds. Speed: %4.1f wpm`,
-		s.InputPosition, elapsed, float64(s.InputPosition)/elapsed*60.0/5.0,
-	)
-	Exit(0, report)
+	termbox.Close()
+	if s.InputPosition > 0 {
+		elapsed := s.Timeline[s.InputPosition-1]
+		fmt.Printf(
+			"Typed %d characters in %4.1f seconds. Speed: %4.1f wpm\n",
+			s.InputPosition, elapsed, float64(s.InputPosition)/elapsed*60.0/5.0,
+		)
+		if err := stats.SaveSession(s.StartedAt, s.Text[:s.InputPosition], s.Timeline[:s.InputPosition]); err != nil {
+			log.Fatal(err)
+		}
+	}
+	os.Exit(0)
 }
 
 func (s *State) reduceEvent(ev termbox.Event) {
@@ -89,6 +98,7 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 	}
 
 	if ch == s.Text[s.InputPosition] { // correct
+		s.Timeline[s.InputPosition] = time.Since(s.StartedAt).Seconds()
 		s.InputPosition++
 	} else { // wrong
 		s.ErrorInput = append(s.ErrorInput, ch)
@@ -101,15 +111,8 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 func (s *State) resetPhrase() {
 	phrase := s.PhraseGenerator.Phrase()
 	s.Text = []rune(phrase)
+	s.Timeline = make([]float64, len(s.Text))
 	s.InputPosition = 0
 	s.ErrorInput = s.ErrorInput[:0] // Clear errors
 	s.StartedAt = time.Time{}
-}
-
-func Exit(status int, message string) {
-	if termbox.IsInit {
-		termbox.Close()
-	}
-	fmt.Println(message)
-	os.Exit(status)
 }

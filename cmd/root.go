@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -36,7 +37,7 @@ func Execute() {
 		Run: func(cmd *cobra.Command, args []string) {
 			a, err := app.New(params)
 			if err != nil {
-				app.Exit(1, err.Error())
+				log.Fatal(err)
 			}
 			a.Run()
 		},

@@ -37,6 +37,9 @@ func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, 
 	}
 	if kind == "paragraphs" {
 		items = makeParagraphs(items, maxLength)
+		if len(items) == 0 {
+			return nil, fmt.Errorf("failed to make paragraphs")
+		}
 		return &sequentialLineGenerator{Lines: items}, nil
 	} else if kind == "words" {
 		return newRandomGenerator(items, maxLength), nil
