@@ -62,10 +62,6 @@ func (s *State) reduceEvent(ev termbox.Event) {
 		s.finish()
 	}
 
-	if s.StartedAt.IsZero() {
-		s.StartedAt = time.Now()
-	}
-
 	switch ev.Key {
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		s.reduceBackspace()
@@ -95,6 +91,9 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 
 	if ch == 0 {
 		return
+	}
+	if s.StartedAt.IsZero() {
+		s.StartedAt = time.Now()
 	}
 
 	if ch == s.Text[s.InputPosition] { // correct
