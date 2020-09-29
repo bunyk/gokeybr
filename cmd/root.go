@@ -9,25 +9,6 @@ import (
 	"github.com/bunyk/gokeybr/app"
 )
 
-const Help = `
-gokeybr is a touch-typing training program
-
-Examples: 
-
-   How to run to train your bash commands typing speed, customized for your commands:
-
-       history | go run main.go -f -
-
-   Or train to type random quote, like on typeracer:
-   
-       fortune | go run main.go -l 1000 -f -
-
-Key bindings:
-
-   ESC   quit
-   C-F   skip forward to the next phrase
-`
-
 func Execute() {
 	params := app.Parameters{}
 

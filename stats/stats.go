@@ -9,6 +9,8 @@ import (
 )
 
 const MinSessionLength = 5
+const LogStatsFile = ".gokeybr_stats_log.jsonl"
+const StatsFile = ".gokeybr_stats.json"
 
 func SaveSession(start time.Time, text []rune, timeline []float64) error {
 	if len(text) != len(timeline) {
@@ -66,7 +68,7 @@ func statFilePath(name string) string {
 
 func saveStatLogEntry(e statLogEntry) error {
 	f, err := os.OpenFile(
-		statFilePath(".gokeybr_stats_log.jsonl"),
+		statFilePath(LogStatsFile),
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644,
 	)
 	if err != nil {
