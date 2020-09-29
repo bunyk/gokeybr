@@ -46,33 +46,37 @@ func updateStats(text []rune, timeline []float64) error {
 		return err
 	}
 	stats.addSession(text, timeline)
-	fmt.Println(*stats)
-	saveStats(filename, stats)
-	return nil
+	return saveStats(filename, stats)
 }
 
 type stats struct {
-	CharCounts       map[string]int // Count characters
-	TrigramCounts    map[string]int
-	TrigramDurations map[string]*Window
+	TotalCharsTyped       int
+	TotalSessionsDuration float64
+	SessionsCount         int
+	Trigrams              map[string]trigramStat
+}
+
+type trigramStat struct {
+	Count    int    `json:"c"`
+	Duration Window `json:"d"`
 }
 
 func newStats() *stats {
 	return &stats{
-		CharCounts:       make(map[string]int),
-		TrigramCounts:    make(map[string]int),
-		TrigramDurations: make(map[string]*Window),
+		Trigrams: make(map[string]trigramStat),
 	}
 }
 
 func (s *stats) addSession(text []rune, timeline []float64) {
-	for _, r := range text {
-		s.CharCounts[string(r)]++
-	}
+	s.SessionsCount++
+	s.TotalCharsTyped += len(text)
+	s.TotalSessionsDuration += timeline[len(timeline)-1]
 	for i := 0; i < len(text)-3; i++ {
 		k := string(text[i : i+3])
-		s.TrigramCounts[k]++
-		s.TrigramDurations[k] = WindowAppend(s.TrigramDurations[k], timeline[i+3]-timeline[i])
+		tr := s.Trigrams[k]
+		tr.Count++
+		tr.Duration.Append(timeline[i+3] - timeline[i])
+		s.Trigrams[k] = tr
 	}
 }
 
@@ -88,7 +92,7 @@ func loadStats(filename string) (*stats, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("File not exist!")
+			fmt.Printf("Warning: File %s not exist! It will be created.\n", filename)
 			return newStats(), nil
 		}
 		return nil, err

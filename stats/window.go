@@ -9,20 +9,19 @@ type Window struct {
 	Values [Capacity]float64
 }
 
-func WindowAppend(w *Window, val float64) *Window {
-	if w == nil {
-		w = &Window{}
-	}
+func (w *Window) Append(val float64) {
 	w.Values[w.Index] = val
 	w.Index = (w.Index + 1) % Capacity
 	if w.Length < Capacity {
 		w.Length++
 	}
-	return w
 }
 
-func (w Window) Average() float64 {
+func (w Window) Average(def float64) float64 {
 	sum := 0.0
+	if w.Length == 0 {
+		return def
+	}
 	for i := 0; i < w.Length; i++ {
 		sum += w.Values[i]
 	}
