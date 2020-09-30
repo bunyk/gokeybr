@@ -4,9 +4,9 @@ const Capacity = 10
 
 // Window will hold last Capacity values in circular buffer to compute running averages
 type Window struct {
-	Length int
-	Index  int
-	Values [Capacity]float64
+	Length int               `json:"l"`
+	Index  int               `json:"i"`
+	Values [Capacity]float64 `json:"v"`
 }
 
 func (w *Window) Append(val float64) {

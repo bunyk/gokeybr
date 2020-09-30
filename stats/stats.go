@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -39,6 +41,15 @@ func SaveSession(start time.Time, text []rune, timeline []float64) error {
 	return updateStats(text, timeline)
 }
 
+func GenerateTrainingSession(length int) (string, error) {
+	filename := statFilePath(StatsFile)
+	stats, err := loadStats(filename)
+	if err != nil {
+		return "", err
+	}
+	return generateSequence(stats.trigramsToTrain(), length), nil
+}
+
 func updateStats(text []rune, timeline []float64) error {
 	filename := statFilePath(StatsFile)
 	stats, err := loadStats(filename)
@@ -56,15 +67,91 @@ type stats struct {
 	Trigrams              map[string]trigramStat
 }
 
+func (s stats) AverageCharDuration() float64 {
+	return s.TotalSessionsDuration / float64(s.TotalCharsTyped)
+}
+
 type trigramStat struct {
 	Count    int    `json:"c"`
 	Duration Window `json:"d"`
+}
+
+func (ts trigramStat) Score(averateDuration float64) float64 {
+	return float64(ts.Count) * ts.Duration.Average(averateDuration)
 }
 
 func newStats() *stats {
 	return &stats{
 		Trigrams: make(map[string]trigramStat),
 	}
+}
+
+type TrigramScore struct {
+	Trigram string
+	Score   float64
+}
+
+// return list of trigrams with their relative importance to train
+// the more frequent is trigram and the more long it takes to type it
+// the more important will it be to train it
+func (s stats) trigramsToTrain() []TrigramScore {
+	totalScore := 0.0
+	res := make([]TrigramScore, 0, len(s.Trigrams))
+	for t, ts := range s.Trigrams {
+		sc := ts.Score(s.AverageCharDuration() * 3)
+		res = append(res, TrigramScore{
+			Trigram: t,
+			Score:   sc,
+		})
+		totalScore += sc
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Score > res[j].Score
+	})
+	return res
+}
+
+type markovChain map[string]map[rune]float64
+
+func generateSequence(trigrams []TrigramScore, length int) string {
+	chain := make(markovChain)
+	// build Markov chain
+	for _, ts := range trigrams {
+		t := []rune(ts.Trigram)
+		bigram := string(t[:2])
+		if chain[bigram] == nil {
+			chain[bigram] = make(map[rune]float64)
+		}
+		chain[bigram][t[2]] = ts.Score
+	}
+	// normalize Markov chain
+	for _, links := range chain {
+		totalScore := 0.0
+		for _, ls := range links {
+			totalScore += ls
+		}
+		for k, ls := range links {
+			links[k] = ls / totalScore
+		}
+	}
+	text := make([]rune, 0, length)
+	for _, r := range trigrams[0].Trigram {
+		text = append(text, r)
+	}
+	for len(text) < length {
+		fmt.Println(string(text))
+		links := chain[string(text[len(text)-2:len(text)])]
+		choice := rand.Float64()
+		totalScore := 0.00001
+		for r, sc := range links {
+			totalScore += sc
+			if choice <= totalScore {
+				text = append(text, r)
+				break
+			}
+		}
+	}
+	return string(text)
 }
 
 func (s *stats) addSession(text []rune, timeline []float64) {

@@ -28,7 +28,7 @@ func Execute() {
 		"path to file with source text",
 	)
 	pf.StringVarP(&params.Mode, "mode", "m", "paragraphs",
-		"mode in which to use source text: paragraphs or words ",
+		"mode in which to use source text: paragraphs, words or stats",
 	)
 	pf.StringVarP(&params.Sourcetext, "text", "t", "",
 		"source text to train on",

@@ -96,7 +96,7 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 		s.StartedAt = time.Now()
 	}
 
-	if ch == s.Text[s.InputPosition] { // correct
+	if ch == s.Text[s.InputPosition] && len(s.ErrorInput) == 0 { // correct
 		s.Timeline[s.InputPosition] = time.Since(s.StartedAt).Seconds()
 		s.InputPosition++
 	} else { // wrong

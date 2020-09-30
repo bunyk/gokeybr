@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/bunyk/gokeybr/stats"
 )
 
 // TODO: reorganize this to better fit single session per single run
@@ -25,6 +27,13 @@ type Generator interface {
 func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, error) {
 	var items []string
 	var err error
+	if kind == "stats" {
+		sourcetext, err = stats.GenerateTrainingSession(maxLength)
+		if err != nil {
+			return nil, err
+		}
+		kind = "paragraphs" // and use that as paragraphs
+	}
 	if len(sourcetext) > 0 {
 		items = strings.Split(sourcetext, "\n")
 	} else if len(filename) > 0 {
@@ -44,7 +53,7 @@ func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, 
 	} else if kind == "words" {
 		return newRandomGenerator(items, maxLength), nil
 	}
-	return nil, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, random)", kind)
+	return nil, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, words, stats)", kind)
 }
 
 // randomGenerator composes a random phrase with given length from given words.
