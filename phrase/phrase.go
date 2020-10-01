@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/bunyk/gokeybr/stats"
 )
@@ -19,73 +18,45 @@ import (
 // Maybe limit/offset for typing and report about offset in the end?
 // Or save offset in stats...
 
-// Generator generates a phrase
-type Generator interface {
-	Phrase() string
-	IsTraining() bool
-}
-
-func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, error) {
+// Will return tex to train on,
+// and boolean that will be true if that text is randomly generated and not a real text
+func FetchPhrase(filename, sourcetext, kind string, maxLength int) (string, bool, error) {
 	var items []string
 	var err error
 	if kind == "stats" {
 		sourcetext, err = stats.GenerateTrainingSession(maxLength)
 		if err != nil {
-			return nil, err
+			return "", false, err
 		}
-		return &sequentialLineGenerator{Lines: []string{sourcetext}, isTraining: true}, nil
+		return sourcetext, true, nil
 	}
 	if len(sourcetext) > 0 {
 		items = strings.Split(sourcetext, "\n")
 	} else if len(filename) > 0 {
 		items, err = readFileLines(filename)
 		if err != nil {
-			return nil, err
+			return "", false, err
 		}
 	} else {
 		items = []string{"the quick brown fox jumps over the lazy dog"}
 	}
 	if kind == "paragraphs" {
-		items = makeParagraphs(items, maxLength)
-		if len(items) == 0 {
-			return nil, fmt.Errorf("failed to make paragraphs")
-		}
-		return &sequentialLineGenerator{Lines: items}, nil
+		items = slice(items, maxLength)
+		return strings.Join(items, "\n"), false, nil
 	} else if kind == "words" {
-		return newRandomGenerator(items, maxLength), nil
+		return randomWords(items, maxLength), false, nil
 	}
-	return nil, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, words, stats)", kind)
+	return "", false, fmt.Errorf("Unknown text type: %s (allowed: paragraphs, words, stats)", kind)
 }
 
-// randomGenerator composes a random phrase with given length from given words.
-type randomGenerator struct {
-	Words     []string
-	MinLength int
-	seed      int64
-}
-
-func newRandomGenerator(words []string, minLength int) *randomGenerator {
-	return &randomGenerator{
-		Words:     words,
-		MinLength: minLength,
-		seed:      time.Now().UnixNano(),
-	}
-}
-
-func (rg randomGenerator) IsTraining() bool {
-	return true // we probably don't want to count this trigrams too
-}
-
-func (rg *randomGenerator) Phrase() string {
-	rand := rand.New(rand.NewSource(rg.seed))
+func randomWords(words []string, minLength int) string {
 	var phrase []string
 	l := -1
-	for l < rg.MinLength {
-		w := rg.Words[rand.Int31n(int32(len(rg.Words)))]
+	for l < minLength {
+		w := words[rand.Intn(len(words))]
 		phrase = append(phrase, w)
-		l += 1 + len(w)
+		l += 1 + len([]rune(w))
 	}
-	rg.seed = rand.Int63()
 	return strings.Join(phrase, " ")
 }
 
@@ -134,22 +105,17 @@ func readFileLines(filename string) (lines []string, err error) {
 
 }
 
-func makeParagraphs(lines []string, maxLength int) []string {
+func slice(lines []string, maxLength int) []string {
 	res := make([]string, 0)
-	buf := ""
+	totalLen := 0
 	for _, l := range lines {
 		l = strings.TrimSpace(l)
-		if len(buf)+len(l)+1 < maxLength {
-			buf += "\n" + l
-		} else {
-			if len(buf) > 0 {
-				res = append(res, strings.TrimSpace(buf))
-				buf = l
-			}
+		res = append(res, l)
+		chars := len([]rune(l))
+		totalLen += chars + 1
+		if totalLen >= maxLength {
+			break
 		}
-	}
-	if len(buf) > 0 {
-		res = append(res, strings.TrimSpace(buf))
 	}
 	return res
 }

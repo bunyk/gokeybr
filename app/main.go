@@ -23,13 +23,13 @@ type Parameters struct {
 func New(params Parameters) (*App, error) {
 	a := &App{}
 	var err error
-	generator, err := phrase.NewGenerator(
+	phrase, isTraining, err := phrase.FetchPhrase(
 		params.Sourcefile, params.Sourcetext, params.Mode, params.PhraseLength,
 	)
 	if err != nil {
 		return a, err
 	}
-	a.state = newState(generator)
+	a.state = newState(phrase, isTraining)
 	if err != nil {
 		return a, err
 	}

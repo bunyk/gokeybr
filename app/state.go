@@ -8,27 +8,25 @@ import (
 
 	"github.com/nsf/termbox-go"
 
-	"github.com/bunyk/gokeybr/phrase"
 	"github.com/bunyk/gokeybr/stats"
 	"github.com/bunyk/gokeybr/view"
 )
 
 type State struct {
-	PhraseGenerator phrase.Generator
-	Text            []rune
-	Timeline        []float64
-	InputPosition   int
-	ErrorInput      []rune
-	StartedAt       time.Time
+	Text          []rune
+	Timeline      []float64
+	InputPosition int
+	ErrorInput    []rune
+	StartedAt     time.Time
+	IsTraining    bool
 }
 
-func newState(generator phrase.Generator) State {
+func newState(text string, isTraining bool) State {
 	state := State{
-		PhraseGenerator: generator,
-		ErrorInput:      make([]rune, 0, 20),
+		ErrorInput: make([]rune, 0, 20),
+		Text:       []rune(text),
 	}
-	state.resetPhrase()
-
+	state.Timeline = make([]float64, len(state.Text))
 	return state
 }
 
@@ -54,7 +52,7 @@ func (s State) finish() {
 			s.StartedAt,
 			s.Text[:s.InputPosition],
 			s.Timeline[:s.InputPosition],
-			s.PhraseGenerator.IsTraining(),
+			s.IsTraining,
 		); err != nil {
 			log.Fatal(err)
 		}
@@ -70,8 +68,6 @@ func (s *State) reduceEvent(ev termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		s.reduceBackspace()
-	case termbox.KeyCtrlF:
-		s.resetPhrase()
 	default:
 		s.reduceCharInput(ev)
 	}
@@ -110,13 +106,4 @@ func (s *State) reduceCharInput(ev termbox.Event) {
 	if s.InputPosition >= len(s.Text) {
 		s.finish()
 	}
-}
-
-func (s *State) resetPhrase() {
-	phrase := s.PhraseGenerator.Phrase()
-	s.Text = []rune(phrase)
-	s.Timeline = make([]float64, len(s.Text))
-	s.InputPosition = 0
-	s.ErrorInput = s.ErrorInput[:0] // Clear errors
-	s.StartedAt = time.Time{}
 }

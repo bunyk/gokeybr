@@ -16,7 +16,6 @@ Examples:
 Key bindings:
 
    ESC   quit
-   C-F   skip forward to the next phrase
 
 Files:
 	gokeybr stores log of your training sessions in file ~/.gokeybr_stats_log.jsonl.
