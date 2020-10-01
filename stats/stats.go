@@ -76,8 +76,16 @@ type trigramStat struct {
 	Duration Window `json:"d"`
 }
 
-func (ts trigramStat) Score(averateDuration float64) float64 {
-	return float64(ts.Count) * ts.Duration.Average(averateDuration)
+// Score approximates time that will be spent typing this trigram
+// It is frequency of trigram (it's count) multiplied by average duration of typing one
+// If we have sequence used 100 times but typed in 0.5 sec, it will have score of 50.
+// one used 50 times, but typed in 1.0 sec will have the same score 50, but is actually a
+// lot easier to improve on. So we subtract 0.1 from duration, to make small
+// durations have more influence, and first case will have score of 40, and second - 45
+// So second case will be trained more, because it has more room for improvement.
+func (ts trigramStat) Score(avgDuration float64) float64 {
+	duration := ts.Duration.Average(avgDuration)
+	return float64(ts.Count) * (duration - 0.1)
 }
 
 func newStats() *stats {
@@ -140,8 +148,11 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 	}
 	for len(text) < length {
 		links := chain[string(text[len(text)-2:len(text)])]
+		if len(links) == 0 {
+			text = append(text, text[len(text)%3])
+		}
 		choice := rand.Float64()
-		totalScore := 0.00001 // Not zero to be sure to exit next loop
+		totalScore := 0.0
 		for r, sc := range links {
 			totalScore += sc
 			if choice <= totalScore {
