@@ -50,7 +50,12 @@ func (s State) finish() {
 			"Typed %d characters in %4.1f seconds. Speed: %4.1f wpm\n",
 			s.InputPosition, elapsed, float64(s.InputPosition)/elapsed*60.0/5.0,
 		)
-		if err := stats.SaveSession(s.StartedAt, s.Text[:s.InputPosition], s.Timeline[:s.InputPosition]); err != nil {
+		if err := stats.SaveSession(
+			s.StartedAt,
+			s.Text[:s.InputPosition],
+			s.Timeline[:s.InputPosition],
+			s.PhraseGenerator.IsTraining(),
+		); err != nil {
 			log.Fatal(err)
 		}
 	}

@@ -22,6 +22,7 @@ import (
 // Generator generates a phrase
 type Generator interface {
 	Phrase() string
+	IsTraining() bool
 }
 
 func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, error) {
@@ -32,7 +33,7 @@ func NewGenerator(filename, sourcetext, kind string, maxLength int) (Generator, 
 		if err != nil {
 			return nil, err
 		}
-		kind = "paragraphs" // and use that as paragraphs
+		return &sequentialLineGenerator{Lines: []string{sourcetext}, isTraining: true}, nil
 	}
 	if len(sourcetext) > 0 {
 		items = strings.Split(sourcetext, "\n")
@@ -71,6 +72,10 @@ func newRandomGenerator(words []string, minLength int) *randomGenerator {
 	}
 }
 
+func (rg randomGenerator) IsTraining() bool {
+	return true // we probably don't want to count this trigrams too
+}
+
 func (rg *randomGenerator) Phrase() string {
 	rand := rand.New(rand.NewSource(rg.seed))
 	var phrase []string
@@ -87,12 +92,17 @@ func (rg *randomGenerator) Phrase() string {
 type sequentialLineGenerator struct {
 	Lines       []string
 	CurrentLine int
+	isTraining  bool
 }
 
 func (slg *sequentialLineGenerator) Phrase() string {
 	cl := slg.CurrentLine
 	slg.CurrentLine = (cl + 1) % len(slg.Lines)
 	return slg.Lines[cl]
+}
+
+func (slg sequentialLineGenerator) IsTraining() bool {
+	return slg.isTraining
 }
 
 func readFileLines(filename string) (lines []string, err error) {

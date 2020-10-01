@@ -20,7 +20,7 @@ const LogStatsFile = ".gokeybr_stats_log.jsonl"
 const StatsFile = ".gokeybr_stats.json"
 const FileAccess = 0644
 
-func SaveSession(start time.Time, text []rune, timeline []float64) error {
+func SaveSession(start time.Time, text []rune, timeline []float64, training bool) error {
 	if len(text) != len(timeline) {
 		return fmt.Errorf(
 			"Length of text (%d) does not match leght of timeline (%d)! Stats not saved.",
@@ -38,7 +38,7 @@ func SaveSession(start time.Time, text []rune, timeline []float64) error {
 	}); err != nil {
 		return err
 	}
-	return updateStats(text, timeline)
+	return updateStats(text, timeline, training)
 }
 
 func GenerateTrainingSession(length int) (string, error) {
@@ -50,13 +50,13 @@ func GenerateTrainingSession(length int) (string, error) {
 	return generateSequence(stats.trigramsToTrain(), length), nil
 }
 
-func updateStats(text []rune, timeline []float64) error {
+func updateStats(text []rune, timeline []float64, training bool) error {
 	filename := statFilePath(StatsFile)
 	stats, err := loadStats(filename)
 	if err != nil {
 		return err
 	}
-	stats.addSession(text, timeline)
+	stats.addSession(text, timeline, training)
 	return saveStats(filename, stats)
 }
 
@@ -139,10 +139,9 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 		text = append(text, r)
 	}
 	for len(text) < length {
-		fmt.Println(string(text))
 		links := chain[string(text[len(text)-2:len(text)])]
 		choice := rand.Float64()
-		totalScore := 0.00001
+		totalScore := 0.00001 // Not zero to be sure to exit next loop
 		for r, sc := range links {
 			totalScore += sc
 			if choice <= totalScore {
@@ -154,14 +153,16 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 	return string(text)
 }
 
-func (s *stats) addSession(text []rune, timeline []float64) {
+func (s *stats) addSession(text []rune, timeline []float64, training bool) {
 	s.SessionsCount++
 	s.TotalCharsTyped += len(text)
 	s.TotalSessionsDuration += timeline[len(timeline)-1]
 	for i := 0; i < len(text)-3; i++ {
 		k := string(text[i : i+3])
 		tr := s.Trigrams[k]
-		tr.Count++
+		if !training { // we do not count trigram frequencies in training sessions
+			tr.Count++ // because that will make them stuck in training longer
+		}
 		tr.Duration.Append(timeline[i+3] - timeline[i])
 		s.Trigrams[k] = tr
 	}
