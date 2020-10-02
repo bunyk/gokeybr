@@ -6,34 +6,15 @@ import (
 	"unicode/utf8"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/nsf/termbox-go"
 )
 
 const wordsPerChar = 0.2 // In computing WPM word is considered to be in avearge 5 characters long
 
 var doneStyle tcell.Style = tcell.StyleDefault.
-	Background(tcell.ColorBlack).
 	Foreground(tcell.ColorGreen)
 var errorStyle = tcell.StyleDefault.
 	Background(tcell.ColorRed).
 	Foreground(tcell.ColorBlack)
-
-type Align int
-
-const (
-	Left Align = iota
-	Center
-	Right
-)
-
-type printSpec struct {
-	text  string
-	x     int
-	y     int
-	fg    termbox.Attribute
-	bg    termbox.Attribute
-	align Align
-}
 
 type DisplayableData struct {
 	Header    string
@@ -45,51 +26,28 @@ type DisplayableData struct {
 
 func Render(s tcell.Screen, dd DisplayableData) {
 	s.Clear()
-	w, _ := s.Size()
+	w, h := s.Size()
 
-	// write(text(dd.Header).X(1).Y(0).Bg(white).Fg(black))
+	write(s, dd.Header, 1, 0, tcell.StyleDefault)
 
 	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5)
 
 	// Stats:
-	/*
-		seconds := 0.0
-		wpm := 0.0
-		if !dd.StartedAt.IsZero() {
-			seconds = time.Since(dd.StartedAt).Seconds()
-			wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
-		}
-		write(text("%4.1f sec, %4.1f wpm", seconds, wpm).X(w/2 + 1).Y(h - 1).Align(Center))
-	*/
+	seconds := 0.0
+	wpm := 0.0
+	if !dd.StartedAt.IsZero() {
+		seconds = time.Since(dd.StartedAt).Seconds()
+		wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
+	}
+	stats := fmt.Sprintf("%.1f sec, %.1f wpm", seconds, wpm)
+	x := (w - utf8.RuneCountInString(stats)) / 2
+	write(s, stats, x, h-1, tcell.StyleDefault)
 	s.Show()
 }
 
-func text(t string, args ...interface{}) *printSpec {
-	s := &printSpec{}
-	if len(args) > 0 {
-		s.text = fmt.Sprintf(t, args...)
-	} else {
-		s.text = t
-	}
-	return s
-}
-
-func write(spec *printSpec) {
-	if spec == nil {
-		return
-	}
-	var x int
-	switch spec.align {
-	case Left:
-		x = spec.x
-	case Center:
-		x = spec.x - utf8.RuneCountInString(spec.text)/2
-	case Right:
-		x = spec.x - utf8.RuneCountInString(spec.text)
-	}
-
-	for _, c := range spec.text {
-		termbox.SetCell(x, spec.y, c, spec.fg, spec.bg)
+func write(scr tcell.Screen, text string, x, y int, style tcell.Style) {
+	for _, c := range text {
+		scr.SetContent(x, y, c, nil, style)
 		x++
 	}
 }
@@ -121,29 +79,4 @@ func write3colors(scr tcell.Screen, done, wrong, todo []rune, x, y, w int) {
 	putS(wrong, errorStyle)
 	scr.ShowCursor(cursorX, cursorY)
 	putS(todo, tcell.StyleDefault)
-}
-
-func (p *printSpec) Align(align Align) *printSpec {
-	p.align = align
-	return p
-}
-
-func (p *printSpec) X(x int) *printSpec {
-	p.x = x
-	return p
-}
-
-func (p *printSpec) Y(y int) *printSpec {
-	p.y = y
-	return p
-}
-
-func (p *printSpec) Fg(fg termbox.Attribute) *printSpec {
-	p.fg = fg
-	return p
-}
-
-func (p *printSpec) Bg(bg termbox.Attribute) *printSpec {
-	p.bg = bg
-	return p
 }
