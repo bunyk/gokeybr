@@ -5,17 +5,18 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/nsf/termbox-go"
 )
 
 const wordsPerChar = 0.2 // In computing WPM word is considered to be in avearge 5 characters long
 
-const (
-	black = termbox.ColorBlack
-	red   = termbox.ColorRed
-	green = termbox.ColorGreen
-	white = termbox.ColorWhite
-)
+var doneStyle tcell.Style = tcell.StyleDefault.
+	Background(tcell.ColorBlack).
+	Foreground(tcell.ColorGreen)
+var errorStyle = tcell.StyleDefault.
+	Background(tcell.ColorRed).
+	Foreground(tcell.ColorBlack)
 
 type Align int
 
@@ -42,24 +43,25 @@ type DisplayableData struct {
 	StartedAt time.Time
 }
 
-func Render(dd DisplayableData) {
-	_ = termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	defer termbox.Flush()
+func Render(s tcell.Screen, dd DisplayableData) {
+	s.Clear()
+	w, _ := s.Size()
 
-	w, h := termbox.Size()
+	// write(text(dd.Header).X(1).Y(0).Bg(white).Fg(black))
 
-	write(text(dd.Header).X(1).Y(0).Bg(white).Fg(black))
-
-	write3colors(dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5)
+	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5)
 
 	// Stats:
-	seconds := 0.0
-	wpm := 0.0
-	if !dd.StartedAt.IsZero() {
-		seconds = time.Since(dd.StartedAt).Seconds()
-		wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
-	}
-	write(text("%4.1f sec, %4.1f wpm", seconds, wpm).X(w/2 + 1).Y(h - 1).Align(Center))
+	/*
+		seconds := 0.0
+		wpm := 0.0
+		if !dd.StartedAt.IsZero() {
+			seconds = time.Since(dd.StartedAt).Seconds()
+			wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
+		}
+		write(text("%4.1f sec, %4.1f wpm", seconds, wpm).X(w/2 + 1).Y(h - 1).Align(Center))
+	*/
+	s.Show()
 }
 
 func text(t string, args ...interface{}) *printSpec {
@@ -92,13 +94,13 @@ func write(spec *printSpec) {
 	}
 }
 
-func write3colors(done, wrong, todo []rune, x, y, w int) {
+func write3colors(scr tcell.Screen, done, wrong, todo []rune, x, y, w int) {
 	cursorX := x
 	cursorY := y
-	putS := func(s []rune, fg, bg termbox.Attribute) {
+	putS := func(s []rune, style tcell.Style) {
 		for _, c := range s {
 			if c == '\n' {
-				termbox.SetCell(cursorX, cursorY, '⏎', fg, bg)
+				scr.SetContent(cursorX, cursorY, '⏎', nil, style)
 				cursorX = x
 				cursorY++
 				continue
@@ -106,7 +108,7 @@ func write3colors(done, wrong, todo []rune, x, y, w int) {
 			if c == ' ' {
 				c = '␣'
 			}
-			termbox.SetCell(cursorX, cursorY, c, fg, bg)
+			scr.SetContent(cursorX, cursorY, c, nil, style)
 			cursorX++
 			if cursorX >= x+w {
 				cursorX = x
@@ -115,10 +117,10 @@ func write3colors(done, wrong, todo []rune, x, y, w int) {
 		}
 	}
 
-	putS(done, green, 0)
-	putS(wrong, black, red)
-	termbox.SetCursor(cursorX, cursorY)
-	putS(todo, white, 0)
+	putS(done, doneStyle)
+	putS(wrong, errorStyle)
+	scr.ShowCursor(cursorX, cursorY)
+	putS(todo, tcell.StyleDefault)
 }
 
 func (p *printSpec) Align(align Align) *printSpec {

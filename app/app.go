@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/bunyk/gokeybr/view"
-	"github.com/nsf/termbox-go"
+	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/encoding"
 )
 
 // App holds whole app state
@@ -25,37 +26,35 @@ func New(text string) *App {
 	return a
 }
 
-func initTermbox() error {
-	err := termbox.Init()
+func (a *App) Run() error {
+	encoding.Register()
+	scr, err := tcell.NewScreen()
 	if err != nil {
 		return err
 	}
-	termbox.SetInputMode(termbox.InputEsc)
-	return nil
-}
-
-func (a *App) Run() error {
-	if err := initTermbox(); err != nil {
+	err = scr.Init()
+	if err != nil {
 		return err
 	}
-	defer termbox.Close()
-	events := make(chan termbox.Event)
+	defer scr.Fini()
+	events := make(chan tcell.Event)
 	go func() {
 		for {
-			ev := termbox.PollEvent()
+			ev := scr.PollEvent()
 			events <- ev
 		}
 	}()
 	for {
-		view.Render(a.ToDisplay())
+		view.Render(scr, a.ToDisplay())
 		ev := <-events
-		switch ev.Type {
-		case termbox.EventKey:
-			if !a.reduceEvent(ev) {
+		switch event := ev.(type) {
+		case *tcell.EventKey:
+			if !a.reduceEvent(event) {
 				return nil
 			}
-		case termbox.EventError:
-			return ev.Err
+		case *tcell.EventResize:
+			scr.Sync()
+			view.Render(scr, a.ToDisplay())
 		}
 	}
 }
@@ -71,24 +70,27 @@ func (a App) ToDisplay() view.DisplayableData {
 }
 
 func (a App) Summary() string {
-	elapsed := a.Timeline[a.InputPosition-1]
-	if elapsed > 0 {
-		return fmt.Sprintf(
-			"Typed %d characters in %4.1f seconds. Speed: %4.1f wpm\n",
-			a.InputPosition, elapsed, float64(a.InputPosition)/elapsed*60.0/5.0,
-		)
+	if a.InputPosition == 0 {
+		return "Typed nothing"
 	}
-	return ""
+	elapsed := a.Timeline[a.InputPosition-1]
+	if elapsed == 0 {
+		return "Speed of light! (actually, probably some error with timer)"
+	}
+	return fmt.Sprintf(
+		"Typed %d characters in %4.1f seconds. Speed: %4.1f wpm\n",
+		a.InputPosition, elapsed, float64(a.InputPosition)/elapsed*60.0/5.0,
+	)
 }
 
 // Return true when should continue loop
-func (a *App) reduceEvent(ev termbox.Event) bool {
-	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
+func (a *App) reduceEvent(ev *tcell.EventKey) bool {
+	if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
 		return false
 	}
 
-	switch ev.Key {
-	case termbox.KeyBackspace, termbox.KeyBackspace2:
+	switch ev.Key() {
+	case tcell.KeyBackspace, tcell.KeyBackspace2:
 		a.reduceBackspace()
 	default:
 		return a.reduceCharInput(ev)
@@ -104,16 +106,13 @@ func (a *App) reduceBackspace() {
 }
 
 // Return true when should continue loop
-func (a *App) reduceCharInput(ev termbox.Event) bool {
+func (a *App) reduceCharInput(ev *tcell.EventKey) bool {
 	var ch rune
-	if ev.Key == termbox.KeySpace {
-		ch = ' '
-	} else if ev.Key == termbox.KeyEnter || ev.Key == termbox.KeyCtrlJ {
+	if ev.Key() == tcell.KeyRune {
+		ch = ev.Rune()
+	} else if ev.Key() == tcell.KeyEnter || ev.Key() == tcell.KeyCtrlJ {
 		ch = '\n'
-	} else {
-		ch = ev.Ch
 	}
-
 	if ch == 0 {
 		return true
 	}
