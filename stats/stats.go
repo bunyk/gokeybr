@@ -130,7 +130,7 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 		if chain[bigram] == nil {
 			chain[bigram] = make(map[rune]float64)
 		}
-		chain[bigram][t[2]] = ts.Score
+		chain[bigram][t[2]] = ts.Score * ts.Score
 	}
 	// normalize Markov chain
 	for _, links := range chain {
@@ -143,7 +143,7 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 		}
 	}
 	text := make([]rune, 0, length)
-	for _, r := range trigrams[0].Trigram {
+	for _, r := range trigrams[rand.Intn(len(trigrams)/10)].Trigram {
 		text = append(text, r)
 	}
 	for len(text) < length {

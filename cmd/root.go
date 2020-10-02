@@ -1,26 +1,54 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/bunyk/gokeybr/app"
+	"github.com/bunyk/gokeybr/phrase"
+	"github.com/bunyk/gokeybr/stats"
 )
 
+// Parameters define arguments with which program started
+type Parameters struct {
+	Sourcefile   string // From where to read training text
+	Sourcetext   string // Training text itself (optional)
+	Mode         string // Treat training text as paragraphs, or set of words to create random texts
+	PhraseLength int    // default lenght for generated phrase
+}
+
 func Execute() {
-	params := app.Parameters{}
+	params := Parameters{}
 
 	var rootCmd = &cobra.Command{
 		Use:  "gokeybr",
 		Long: Help,
 		Run: func(cmd *cobra.Command, args []string) {
-			a, err := app.New(params)
+			text, isTraining, err := phrase.FetchPhrase(
+				params.Sourcefile, params.Sourcetext, params.Mode, params.PhraseLength,
+			)
 			if err != nil {
 				log.Fatal(err)
 			}
-			a.Run()
+			a := app.New(text)
+			err = a.Run()
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(a.Summary())
+
+			err = stats.SaveSession(
+				a.StartedAt,
+				a.Text[:a.InputPosition],
+				a.Timeline[:a.InputPosition],
+				isTraining,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
 		},
 	}
 	pf := rootCmd.PersistentFlags()
