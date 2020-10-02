@@ -1,8 +1,12 @@
 # Gokeybr
+Minimalistic touch-typing tutor, that tries to improve on [keybr.com](https://www.keybr.com/) by generating training lessons not only from words, but with symbols from code, or any other type of text you would want to train on.
 
-A fork of [gotypist](https://github.com/pb-/gotypist) touch-typing tutor, that tries to improve on [keybr.com](https://www.keybr.com/) by generating training lessons not only from words, but with curly brackets, or any other type of text you would want to train on.
+You could, for example, train to type ten `if err != nil { return err }` per minute and become fastest Go coder.
 
-Rewritten to use [tcell](https://github.com/gdamore/tcell/) instead of [termbox-go](https://github.com/nsf/termbox-go).
+![Screenshot of a Gokeybr session](screenshot.png)
+
+Above you see `gokeybr` running in `stats` mode, where it generates training session based on your typing stats. In this case it mixes code with "words", based on frequency and typing speed of character sequences in texts that were used for other training sessions.
+
 
 ## Installation
 
@@ -16,7 +20,9 @@ go get github.com/bunyk/gokeybr
 
 `gokeybr --help` will give you the latest & most true information with which parameters this could be started.
 
-## Code organization
+## Code
+A fork of [gotypist](https://github.com/pb-/gotypist), rewritten to use [tcell](https://github.com/gdamore/tcell/) instead of [termbox-go](https://github.com/nsf/termbox-go).
+
 Code is split in following packages:
 
 - `cmd/` - is entry point of the program, handles parsing of arguments and starts app
