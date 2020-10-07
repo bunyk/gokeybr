@@ -9,6 +9,10 @@ import (
 	"github.com/gdamore/tcell/v2/encoding"
 )
 
+// used for testing
+// j - type, k - untype
+const cheating = false
+
 // App holds whole app state
 type App struct {
 	Text          []rune
@@ -50,6 +54,9 @@ func (a *App) Run() error {
 		switch event := ev.(type) {
 		case *tcell.EventKey:
 			if !a.reduceEvent(event) {
+				if cheating {
+					a.InputPosition = 0
+				}
 				return nil
 			}
 		case *tcell.EventResize:
@@ -120,6 +127,18 @@ func (a *App) reduceCharInput(ev *tcell.EventKey) bool {
 		a.StartedAt = time.Now()
 	}
 
+	if cheating { // always type correct :)
+		if ch == 'j' {
+			a.InputPosition += 3
+		}
+		if ch == 'k' {
+			a.InputPosition -= 3
+		}
+		if a.InputPosition < 0 {
+			a.InputPosition = 0
+		}
+		return a.InputPosition < len(a.Text)
+	}
 	if ch == a.Text[a.InputPosition] && len(a.ErrorInput) == 0 { // correct
 		a.Timeline[a.InputPosition] = time.Since(a.StartedAt).Seconds()
 		a.InputPosition++

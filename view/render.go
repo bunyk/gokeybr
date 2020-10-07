@@ -30,7 +30,7 @@ func Render(s tcell.Screen, dd DisplayableData) {
 
 	write(s, dd.Header, 1, 0, tcell.StyleDefault)
 
-	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5)
+	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5, h-4)
 
 	// Stats:
 	seconds := 0.0
@@ -52,31 +52,99 @@ func write(scr tcell.Screen, text string, x, y int, style tcell.Style) {
 	}
 }
 
-func write3colors(scr tcell.Screen, done, wrong, todo []rune, x, y, w int) {
-	cursorX := x
-	cursorY := y
-	putS := func(s []rune, style tcell.Style) {
+func write3colors(scr tcell.Screen, done, wrong, todo []rune, x, y, w, h int) {
+	var cursorX, cursorY int
+	var style tcell.Style
+	var blank bool // turns off printing for computing cursor position
+
+	// put character on screen
+	putC := func(r rune) {
+		if blank {
+			return // this is just trial run
+		}
+		scr.SetContent(cursorX, cursorY, r, nil, style)
+	}
+	putS := func(s []rune) {
 		for _, c := range s {
+			if !blank && cursorY > y+h {
+				break // Do not type below allowed window
+			}
+			if !blank && cursorY == y+h {
+				c = '↡' // If we are on a lower border - show that there will be more text
+			}
 			if c == '\n' {
-				scr.SetContent(cursorX, cursorY, '⏎', nil, style)
+				putC('⏎')
+				// move cursor to new line
 				cursorX = x
 				cursorY++
 				continue
 			}
+			// displayable spaces
 			if c == ' ' {
 				c = '␣'
 			}
-			scr.SetContent(cursorX, cursorY, c, nil, style)
+			putC(c)
 			cursorX++
-			if cursorX >= x+w {
+			if cursorX >= x+w { // line wrap
 				cursorX = x
 				cursorY++
 			}
 		}
 	}
 
-	putS(done, doneStyle)
-	putS(wrong, errorStyle)
+	cursorX = x
+	cursorY = y
+	blank = true
+
+	putS(done)
+	putS(wrong)
+
+	// cursor will be in current position if we won't scroll
+
+	// but we will scroll following number of lines
+	scroll := cursorY - y - h/2
+
+	// TODO: maybe move this out
+	if scroll > 0 {
+		scrolledLines := 0
+		i := 0
+		var c rune
+		for i, c = range done {
+			if c == '\n' {
+				scrolledLines++
+			}
+			if scrolledLines >= scroll {
+				i++
+				break
+			}
+		}
+		done = done[i:]
+		if len(done) == 0 && scrolledLines < scroll {
+			for i, c = range wrong {
+				if c == '\n' {
+					scrolledLines++
+				}
+				if scrolledLines >= scroll {
+					i++
+					break
+				}
+			}
+			wrong = wrong[i:]
+		}
+	}
+
+	cursorX = x
+	cursorY = y
+	blank = false
+
+	style = doneStyle
+	putS(done)
+
+	style = errorStyle
+	putS(wrong)
+
 	scr.ShowCursor(cursorX, cursorY)
-	putS(todo, tcell.StyleDefault)
+
+	style = tcell.StyleDefault
+	putS(todo)
 }
