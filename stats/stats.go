@@ -1,14 +1,13 @@
 package stats
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/bunyk/gokeybr/fs"
 )
 
 // TODO: maybe use integer values in miliseconds, to save space?
@@ -16,9 +15,8 @@ import (
 
 const MinSessionLength = 5
 
-const LogStatsFile = ".gokeybr_stats_log.jsonl"
-const StatsFile = ".gokeybr_stats.json"
-const FileAccess = 0644
+const LogStatsFile = "sessions_log.jsonl"
+const StatsFile = "stats.json"
 
 func SaveSession(start time.Time, text []rune, timeline []float64, training bool) error {
 	if len(text) != len(timeline) {
@@ -31,36 +29,38 @@ func SaveSession(start time.Time, text []rune, timeline []float64, training bool
 		fmt.Printf("Not updating stats for session only %d characters long\n", len(text))
 		return nil
 	}
-	if err := saveStatLogEntry(statLogEntry{
-		Start:    start.Format(time.RFC3339),
-		Text:     string(text),
-		Timeline: timeline,
-	}); err != nil {
+	if err := fs.AppendJSONLine(
+		LogStatsFile,
+		statLogEntry{
+			Start:    start.Format(time.RFC3339),
+			Text:     string(text),
+			Timeline: timeline,
+		},
+	); err != nil {
 		return err
 	}
 	return updateStats(text, timeline, training)
 }
 
 func GenerateTrainingSession(length int) (string, error) {
-	filename := statFilePath(StatsFile)
-	stats, err := loadStats(filename)
+	stats, err := loadStats()
 	if err != nil {
 		return "", err
 	}
 	if length == 0 {
 		length = 100
 	}
+	fmt.Println("Loaded stats, generating training sequence")
 	return generateSequence(stats.trigramsToTrain(), length), nil
 }
 
 func updateStats(text []rune, timeline []float64, training bool) error {
-	filename := statFilePath(StatsFile)
-	stats, err := loadStats(filename)
+	stats, err := loadStats()
 	if err != nil {
 		return err
 	}
 	stats.addSession(text, timeline, training)
-	return saveStats(filename, stats)
+	return fs.SaveJSON(StatsFile, stats)
 }
 
 type stats struct {
@@ -81,20 +81,13 @@ type trigramStat struct {
 
 // Score approximates time that will be spent typing this trigram
 // It is frequency of trigram (it's count) multiplied by average duration of typing one
-// If we have sequence used 100 times but typed in 0.5 sec, it will have score of 50.
-// one used 50 times, but typed in 1.0 sec will have the same score 50, but is actually a
-// lot easier to improve on. So we subtract 0.1 from duration, to make small
-// durations have more influence, and first case will have score of 40, and second - 45
-// So second case will be trained more, because it has more room for improvement.
 func (ts trigramStat) Score(avgDuration float64) float64 {
 	duration := ts.Duration.Average(avgDuration)
-	return float64(ts.Count) * (duration - 0.1)
-}
-
-func newStats() *stats {
-	return &stats{
-		Trigrams: make(map[string]trigramStat),
+	score := float64(ts.Count) * duration
+	if score == 0 {
+		score = 0.00001
 	}
+	return score
 }
 
 type TrigramScore struct {
@@ -182,53 +175,21 @@ func (s *stats) addSession(text []rune, timeline []float64, training bool) {
 	}
 }
 
-func saveStats(filename string, s *stats) error {
-	data, err := json.MarshalIndent(s, "", " ")
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(filename, data, FileAccess)
-}
-
-func loadStats(filename string) (*stats, error) {
-	data, err := ioutil.ReadFile(filename)
+func loadStats() (*stats, error) {
+	var s stats
+	err := fs.LoadJSON(StatsFile, &s)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("Warning: File %s not exist! It will be created.\n", filename)
-			return newStats(), nil
+			fmt.Printf("Warning: File %s does not exist! It will be created.\n", StatsFile)
+			return &stats{Trigrams: make(map[string]trigramStat)}, nil
 		}
 		return nil, err
 	}
-	var s stats
-	return &s, json.Unmarshal(data, &s)
+	return &s, nil
 }
 
 type statLogEntry struct {
 	Start    string    `json:"start"`
 	Text     string    `json:"text"`
 	Timeline []float64 `json:"timeline"`
-}
-
-func statFilePath(name string) string {
-	return filepath.Join(
-		os.Getenv("HOME"),
-		name,
-	)
-}
-
-func saveStatLogEntry(e statLogEntry) error {
-	f, err := os.OpenFile(
-		statFilePath(LogStatsFile),
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, FileAccess,
-	)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	data, err := json.Marshal(e)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintln(f, string(data))
-	return err
 }

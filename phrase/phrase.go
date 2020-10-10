@@ -58,12 +58,19 @@ func randomWords(words []string, minLength int) string {
 	return strings.Join(phrase, " ")
 }
 
+func lastFileOffset(filename string) int {
+	return 0 // TODO: actually load
+}
+
 func readFileLines(filename string, offset int) (lines []string, err error) {
 	var data []byte
 	if filename == "-" {
 		data, err = ioutil.ReadAll(os.Stdin)
 	} else {
 		data, err = ioutil.ReadFile(filename)
+		if offset < 0 {
+			offset = lastFileOffset(filename)
+		}
 	}
 	if err != nil {
 		return
