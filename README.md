@@ -5,12 +5,10 @@ You could, for example, train to type ten `if err != nil { return err }` per min
 
 ![Screenshot of a Gokeybr session](screenshot.png)
 
-Above you see `gokeybr` running in `stats` mode, where it generates training session based on your typing stats. In this case it mixes code with "words", based on frequency and typing speed of character sequences in texts that were used for other training sessions.
+On the screenshot you see `gokeybr` running in `stats` mode, where it generates training session based on your typing stats. In this case it mixes code with "words", based on frequency and typing speed of character sequences in texts that were used for other training sessions.
 
 
 ## Installation
-
-### From source
 
 ```bash
 go get github.com/bunyk/gokeybr
@@ -21,12 +19,20 @@ go get github.com/bunyk/gokeybr
 `gokeybr --help` will give you the latest & most true information with which parameters this could be started.
 
 ## Code
-A fork of [gotypist](https://github.com/pb-/gotypist), rewritten to use [tcell](https://github.com/gdamore/tcell/) instead of [termbox-go](https://github.com/nsf/termbox-go).
+A fork of [gotypist](https://github.com/pb-/gotypist), rewritten to use [tcell](https://github.com/gdamore/tcell/) instead of [termbox-go](https://github.com/nsf/termbox-go). Also added support for multiline typing sessions and statistically generated exercises. Removed modes, so in each session you could strive for any result you wish.
 
-Code is split in following packages:
+Acrhitecture is changed from ELM-like to more classical. Code is split in following packages:
 
 - `cmd/` - is entry point of the program, handles parsing of arguments and starts app
 - `app/` - contains code of event loop and overall logic of typing session
 - `phrase/` - loading and generation of training texts
 - `view/` - anyting related to displaying information on the screen
 - `stats/` - keeping track of your progress & helping to generate most useful training session
+
+## TODO:
+
+- Save offset in stat and make it load by default when not set
+- update timer display even when there are no events
+- add mode to type weakest trigram with "shortest" circle sequence.
+- Write down explanation why mode above will be optimal
+- Describe better, non-linear effort -> speedup function. (Formula for energy to reach speed of light?)

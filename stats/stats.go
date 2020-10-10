@@ -47,6 +47,9 @@ func GenerateTrainingSession(length int) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if length == 0 {
+		length = 100
+	}
 	return generateSequence(stats.trigramsToTrain(), length), nil
 }
 
@@ -147,7 +150,7 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 		text = append(text, r)
 	}
 	for len(text) < length {
-		links := chain[string(text[len(text)-2:len(text)])]
+		links := chain[string(text[len(text)-2:])]
 		if len(links) == 0 {
 			text = append(text, text[len(text)%3])
 		}
