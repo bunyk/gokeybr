@@ -6,22 +6,25 @@ import (
 
 	"github.com/bunyk/gokeybr/app"
 	"github.com/bunyk/gokeybr/phrase"
-	"github.com/bunyk/gokeybr/stats"
 	"github.com/spf13/cobra"
 )
 
-var wordsFile string
 var wordsCount int
 
 var wordsCmd = &cobra.Command{
-	Use:   "words",
+	Use:   "words [flags] [optional file to load words from (one word per line, \"-\" - stdin)]",
 	Short: "train to type words loaded from file",
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if wordsCount < 1 {
 			fmt.Println("Need more then one word to start exercise")
 			return
 		}
-		text, err := phrase.Words(wordsFile, wordsCount)
+		filename := "/usr/share/dict/words"
+		if len(args) > 0 {
+			filename = args[0]
+		}
+		text, err := phrase.Words(filename, wordsCount)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -30,23 +33,11 @@ var wordsCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(a.Summary())
-
-		err = stats.SaveSession(
-			a.StartedAt,
-			a.Text[:a.InputPosition],
-			a.Timeline[:a.InputPosition],
-			false,
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
+		saveStats(a, false)
 	},
 }
 
 func init() {
-	wordsCmd.Flags().StringVarP(&wordsFile, "file", "f", "/usr/share/dict/words", "File to load words from (one word per line). \"-\" for stdin.")
-
 	wordsCmd.Flags().IntVarP(&wordsCount, "number", "n", 10,
 		"Number of words to type (default 10)",
 	)

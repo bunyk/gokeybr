@@ -32,10 +32,10 @@ Acrhitecture is changed from ELM-like to more classical. Code is split in follow
 
 ## TODO:
 
+- Split root cmd to multiple commands by modes - file, words, keybr, weakest
 - Reset file offset when file ends, or implement manual resetting
 - add mode to type weakest trigram with "shortest" circle sequence.
 - Write down explanation why mode above will be optimal
-- Split root cmd to multiple commands by modes - file, words, keybr, weakest
 - update timer display even when there are no events
 - implement "focused" flag to not display speed stats on screen
 - Describe better, non-linear effort -> speedup function. (Formula for energy to reach speed of light?)

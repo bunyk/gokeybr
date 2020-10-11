@@ -19,8 +19,6 @@ import (
 // Will return text to train on,
 // and boolean that will be true if that text is randomly generated and not a real text
 func FetchPhrase(filename, kind string, minLength int, offset int) (string, bool, error) {
-	var items []string
-	var err error
 	if kind == "stats" {
 		sourcetext, err := stats.GenerateTrainingSession(minLength)
 		if err != nil {
@@ -28,19 +26,16 @@ func FetchPhrase(filename, kind string, minLength int, offset int) (string, bool
 		}
 		return sourcetext, true, nil
 	}
-	if len(filename) > 0 {
-		items, err = readFileLines(filename, offset)
-		if err != nil {
-			return "", false, err
-		}
-	} else {
-		items = []string{"the quick brown fox jumps over the lazy dog"}
-	}
-	if kind == "lines" {
-		items = slice(items, minLength)
-		return strings.Join(items, "\n"), false, nil
-	}
 	return "", false, fmt.Errorf("Unknown text type: %s (allowed: lines, stats)", kind)
+}
+
+func FromFile(filename string, offset, minLength int) (string, error) {
+	items, err := readFileLines(filename, offset)
+	if err != nil {
+		return "", err
+	}
+	items = slice(items, minLength)
+	return strings.Join(items, "\n"), nil
 }
 
 func Words(filename string, n int) (string, error) {

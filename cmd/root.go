@@ -49,7 +49,6 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(a.Summary())
 
 		if len(params.Sourcefile) > 0 && params.Mode == "lines" {
 			err = phrase.UpdateFileProgress(params.Sourcefile, a.LinesTyped())
@@ -57,24 +56,25 @@ var rootCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
-		err = stats.SaveSession(
-			a.StartedAt,
-			a.Text[:a.InputPosition],
-			a.Timeline[:a.InputPosition],
-			isTraining,
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
+		saveStats(a, isTraining)
 	},
+}
+
+func saveStats(a *app.App, isTraining bool) {
+	fmt.Println(a.Summary())
+	if err := stats.SaveSession(
+		a.StartedAt,
+		a.Text[:a.InputPosition],
+		a.Timeline[:a.InputPosition],
+		isTraining,
+	); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func init() {
 
 	pf := rootCmd.PersistentFlags()
-	pf.StringVarP(&params.Sourcefile, "file", "f", "",
-		"path to file with source text (\"-\" for stdin)",
-	)
 	pf.StringVarP(&params.Mode, "mode", "m", "lines",
 		"mode in which to use source text: lines, words or stats",
 	)
