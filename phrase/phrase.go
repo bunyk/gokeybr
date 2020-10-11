@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/bunyk/gokeybr/fs"
 	"github.com/bunyk/gokeybr/stats"
 )
 
@@ -56,10 +58,6 @@ func randomWords(words []string, minLength int) string {
 		l += 1 + len([]rune(w))
 	}
 	return strings.Join(phrase, " ")
-}
-
-func lastFileOffset(filename string) int {
-	return 0 // TODO: actually load
 }
 
 func readFileLines(filename string, offset int) (lines []string, err error) {
@@ -111,4 +109,38 @@ func slice(lines []string, minLength int) []string {
 		}
 	}
 	return res
+}
+
+const ProgressFile = "progress.json"
+
+func UpdateFileProgress(filename string, linesTyped int) error {
+	var progressTable map[string]int
+	if err := fs.LoadJSON(ProgressFile, &progressTable); err != nil {
+		if os.IsNotExist(err) {
+			fmt.Printf("%s is not found, will be created\n", ProgressFile)
+			progressTable = make(map[string]int)
+		} else {
+			return err
+		}
+	}
+	filename, err := filepath.Abs(filename)
+	if err != nil {
+		return err
+	}
+	progressTable[filename] += linesTyped
+	return fs.SaveJSON(ProgressFile, progressTable)
+}
+
+func lastFileOffset(filename string) int {
+	var progressTable map[string]int
+	if err := fs.LoadJSON(ProgressFile, &progressTable); err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	filename, err := filepath.Abs(filename)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	return progressTable[filename]
 }

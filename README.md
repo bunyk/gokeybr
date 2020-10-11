@@ -1,5 +1,5 @@
 # Gokeybr
-Minimalistic touch-typing tutor, that tries to improve on [keybr.com](https://www.keybr.com/) by generating training lessons not only from words, but with symbols from code, or any other type of text you would want to train on.
+Minimalistic touch-typing training program, that tries to improve on [keybr.com](https://www.keybr.com/) by generating training lessons not only from words, but with symbols from code, or any other type of text you would want to train on.
 
 You could, for example, train to type ten `if err != nil { return err }` per minute and become fastest Go coder.
 
@@ -32,8 +32,10 @@ Acrhitecture is changed from ELM-like to more classical. Code is split in follow
 
 ## TODO:
 
-- Save offset in stat and make it load by default when not set
-- update timer display even when there are no events
+- Reset file offset when file ends, or implement manual resetting
 - add mode to type weakest trigram with "shortest" circle sequence.
 - Write down explanation why mode above will be optimal
+- Split root cmd to multiple commands by modes - file, words, keybr, weakest
+- update timer display even when there are no events
+- implement "focused" flag to not display speed stats on screen
 - Describe better, non-linear effort -> speedup function. (Formula for energy to reach speed of light?)

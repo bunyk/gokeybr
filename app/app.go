@@ -90,6 +90,17 @@ func (a App) Summary() string {
 	)
 }
 
+// Compute number of typed lines
+func (a App) LinesTyped() int {
+	lt := 0
+	for _, c := range a.Text[:a.InputPosition] {
+		if c == '\n' {
+			lt++
+		}
+	}
+	return lt
+}
+
 // Return true when should continue loop
 func (a *App) reduceEvent(ev *tcell.EventKey) bool {
 	if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {

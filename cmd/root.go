@@ -25,6 +25,9 @@ func (p Parameters) Validate() error {
 	if len(p.Sourcefile) > 0 && len(p.Sourcetext) > 0 {
 		return fmt.Errorf("choose source file or sourcetext, but not both")
 	}
+	if p.Offset > 0 && p.Mode != "lines" {
+		return fmt.Errorf("Offset is used only with lines mode")
+	}
 	return nil
 }
 
@@ -53,6 +56,12 @@ func Execute() {
 			}
 			fmt.Println(a.Summary())
 
+			if len(params.Sourcefile) > 0 && params.Mode == "lines" {
+				err = phrase.UpdateFileProgress(params.Sourcefile, a.LinesTyped())
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
 			err = stats.SaveSession(
 				a.StartedAt,
 				a.Text[:a.InputPosition],
@@ -77,7 +86,7 @@ func Execute() {
 	pf.IntVarP(&params.PhraseLength, "length", "l", 0,
 		"Minimal lenght of text to train on (default 100 for random text, unlimited for loaded)",
 	)
-	pf.IntVarP(&params.Offset, "offset", "o", 0,
+	pf.IntVarP(&params.Offset, "offset", "o", -1,
 		"Offset in lines when loading file (default 0)",
 	)
 	if err := rootCmd.Execute(); err != nil {
