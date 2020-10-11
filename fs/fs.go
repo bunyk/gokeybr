@@ -20,7 +20,7 @@ func homeFilePath(name string) string {
 func mkdir() {
 	dir := homeFilePath("/")
 	if _, err := os.Stat(dir); err != nil {
-		os.MkdirAll(dir, os.ModePerm)
+		_ = os.MkdirAll(dir, os.ModePerm)
 	}
 }
 

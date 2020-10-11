@@ -13,21 +13,7 @@ import (
 	"time"
 
 	"github.com/bunyk/gokeybr/fs"
-	"github.com/bunyk/gokeybr/stats"
 )
-
-// Will return text to train on,
-// and boolean that will be true if that text is randomly generated and not a real text
-func FetchPhrase(filename, kind string, minLength int, offset int) (string, bool, error) {
-	if kind == "stats" {
-		sourcetext, err := stats.GenerateTrainingSession(minLength)
-		if err != nil {
-			return "", false, err
-		}
-		return sourcetext, true, nil
-	}
-	return "", false, fmt.Errorf("Unknown text type: %s (allowed: lines, stats)", kind)
-}
 
 func FromFile(filename string, offset, minLength int) (string, error) {
 	items, err := readFileLines(filename, offset)
