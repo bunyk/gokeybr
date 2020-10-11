@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bunyk/gokeybr/fs"
 	"github.com/bunyk/gokeybr/stats"
@@ -17,19 +18,17 @@ import (
 
 // Will return text to train on,
 // and boolean that will be true if that text is randomly generated and not a real text
-func FetchPhrase(filename, sourcetext, kind string, minLength int, offset int) (string, bool, error) {
+func FetchPhrase(filename, kind string, minLength int, offset int) (string, bool, error) {
 	var items []string
 	var err error
 	if kind == "stats" {
-		sourcetext, err = stats.GenerateTrainingSession(minLength)
+		sourcetext, err := stats.GenerateTrainingSession(minLength)
 		if err != nil {
 			return "", false, err
 		}
 		return sourcetext, true, nil
 	}
-	if len(sourcetext) > 0 {
-		items = strings.Split(sourcetext, "\n")
-	} else if len(filename) > 0 {
+	if len(filename) > 0 {
 		items, err = readFileLines(filename, offset)
 		if err != nil {
 			return "", false, err
@@ -40,24 +39,22 @@ func FetchPhrase(filename, sourcetext, kind string, minLength int, offset int) (
 	if kind == "lines" {
 		items = slice(items, minLength)
 		return strings.Join(items, "\n"), false, nil
-	} else if kind == "words" {
-		return randomWords(items, minLength), false, nil
 	}
-	return "", false, fmt.Errorf("Unknown text type: %s (allowed: lines, words, stats)", kind)
+	return "", false, fmt.Errorf("Unknown text type: %s (allowed: lines, stats)", kind)
 }
 
-func randomWords(words []string, minLength int) string {
-	if minLength == 0 {
-		minLength = 100
+func Words(filename string, n int) (string, error) {
+	words, err := readFileLines(filename, 0)
+	if err != nil {
+		return "", err
 	}
+	rand.Seed(time.Now().UTC().UnixNano())
 	var phrase []string
-	l := -1
-	for l < minLength {
+	for i := 0; i < n; i++ {
 		w := words[rand.Intn(len(words))]
 		phrase = append(phrase, w)
-		l += 1 + len([]rune(w))
 	}
-	return strings.Join(phrase, " ")
+	return strings.Join(phrase, " "), nil
 }
 
 func readFileLines(filename string, offset int) (lines []string, err error) {
