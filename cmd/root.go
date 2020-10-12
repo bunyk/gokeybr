@@ -10,14 +10,6 @@ import (
 	"github.com/bunyk/gokeybr/stats"
 )
 
-// Parameters define arguments with which program started
-type Parameters struct {
-	PhraseLength int // default lenght for generated phrase
-	Offset       int // offset of file in lines
-}
-
-var params Parameters
-
 var rootCmd = &cobra.Command{
 	Use:  "gokeybr",
 	Long: Help,

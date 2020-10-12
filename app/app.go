@@ -98,6 +98,9 @@ func (a App) LinesTyped() int {
 			lt++
 		}
 	}
+	if a.InputPosition == len(a.Text) {
+		lt++
+	}
 	return lt
 }
 

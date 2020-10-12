@@ -21,7 +21,7 @@ go get github.com/bunyk/gokeybr
 ## Code
 A fork of [gotypist](https://github.com/pb-/gotypist), rewritten to use [tcell](https://github.com/gdamore/tcell/) instead of [termbox-go](https://github.com/nsf/termbox-go). Also added support for multiline typing sessions and statistically generated exercises. Removed modes, so in each session you could strive for any result you wish.
 
-Acrhitecture is changed from ELM-like to more classical. Code is split in following packages:
+Acrhitecture is changed from Elm-like to more classical. Code is split in following packages:
 
 - `cmd/` - is entry point of the program, handles parsing of arguments and starts app
 - `app/` - contains code of event loop and overall logic of typing session
@@ -32,7 +32,6 @@ Acrhitecture is changed from ELM-like to more classical. Code is split in follow
 
 ## TODO:
 
-- Reset file offset when file ends, or implement manual resetting
 - add mode to type weakest trigram with "shortest" circle sequence.
 - Write down explanation why mode above will be optimal
 - update timer display even when there are no events

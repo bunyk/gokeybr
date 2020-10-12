@@ -46,12 +46,14 @@ func readFileLines(filename string, offset int) (lines []string, err error) {
 		data, err = ioutil.ReadFile(filename)
 		if offset < 0 {
 			offset = lastFileOffset(filename)
+			fmt.Printf("Offset was not given, loaded last saved progress on line %d\n", offset)
 		}
 	}
 	if err != nil {
 		return
 	}
 
+	skip := offset
 	reader := bufio.NewReader(bytes.NewBuffer(data))
 	for {
 		line, rerr := reader.ReadString('\n')
@@ -65,8 +67,8 @@ func readFileLines(filename string, offset int) (lines []string, err error) {
 			err = rerr
 			return
 		}
-		if offset > 0 {
-			offset--
+		if skip > 0 {
+			skip--
 		} else {
 			lines = append(lines, line[:len(line)-1])
 		}
@@ -91,7 +93,10 @@ func slice(lines []string, minLength int) []string {
 
 const ProgressFile = "progress.json"
 
-func UpdateFileProgress(filename string, linesTyped int) error {
+func UpdateFileProgress(filename string, linesTyped, offset int) error {
+	if linesTyped < 1 {
+		return nil // need to type at least line to update progress
+	}
 	var progressTable map[string]int
 	if err := fs.LoadJSON(ProgressFile, &progressTable); err != nil {
 		if os.IsNotExist(err) {
@@ -105,7 +110,12 @@ func UpdateFileProgress(filename string, linesTyped int) error {
 	if err != nil {
 		return err
 	}
-	progressTable[filename] += linesTyped
+	if offset < 0 {
+		progressTable[filename] += linesTyped
+	} else {
+		progressTable[filename] = offset + linesTyped
+	}
+	fmt.Printf("Saving progress for %s to be line #%d\n", filename, progressTable[filename])
 	return fs.SaveJSON(ProgressFile, progressTable)
 }
 
