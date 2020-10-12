@@ -51,7 +51,12 @@ func GenerateTrainingSession(length int) (string, error) {
 		length = 100
 	}
 	fmt.Println("Loaded stats, generating training sequence")
-	return generateSequence(stats.trigramsToTrain(), length), nil
+
+	trigrams := stats.trigramsToTrain()
+	if len(trigrams) < NWeakest {
+		return "", fmt.Errorf("Not enought stats yet to generate good exercise")
+	}
+	return generateSequence(trigrams, length), nil
 }
 
 func updateStats(text []rune, timeline []float64, training bool) error {
@@ -117,6 +122,8 @@ func (s stats) trigramsToTrain() []TrigramScore {
 
 type markovChain map[string]map[rune]float64
 
+const NWeakest = 10
+
 func generateSequence(trigrams []TrigramScore, length int) string {
 	chain := make(markovChain)
 	// build Markov chain
@@ -139,7 +146,7 @@ func generateSequence(trigrams []TrigramScore, length int) string {
 		}
 	}
 	text := make([]rune, 0, length)
-	for _, r := range trigrams[rand.Intn(len(trigrams)/10)].Trigram {
+	for _, r := range trigrams[rand.Intn(NWeakest)].Trigram {
 		text = append(text, r)
 	}
 	for len(text) < length {

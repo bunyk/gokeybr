@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/bunyk/gokeybr/app"
 	"github.com/bunyk/gokeybr/stats"
@@ -21,12 +20,14 @@ var markovCmd = &cobra.Command{
 		}
 		text, err := stats.GenerateTrainingSession(markovLength)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			return
 		}
 		a := app.New(text)
 		err = a.Run()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			return
 		}
 
 		saveStats(a, true)
