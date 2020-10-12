@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,17 +22,7 @@ var rootCmd = &cobra.Command{
 	Use:  "gokeybr",
 	Long: Help,
 	Run: func(cmd *cobra.Command, args []string) {
-		text, err := stats.GenerateTrainingSession(params.PhraseLength)
-		if err != nil {
-			log.Fatal(err)
-		}
-		a := app.New(text)
-		err = a.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		saveStats(a, true)
+		_ = cmd.Help()
 	},
 }
 

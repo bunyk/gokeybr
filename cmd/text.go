@@ -9,12 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var offset, limit int
 var textCmd = &cobra.Command{
 	Use:   "text [flags] [file with text (\"-\" - stdin)]",
 	Short: "train to type contents of some file",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		text, err := phrase.FromFile(args[0], 0, wordsCount)
+		text, err := phrase.FromFile(args[0], offset, limit)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -32,8 +33,8 @@ var textCmd = &cobra.Command{
 }
 
 func init() {
-	textCmd.Flags().IntVarP(&params.PhraseLength, "length", "l", 0,
-		"Minimal lenght of text to train on (default 100 for random text, unlimited for loaded)",
+	textCmd.Flags().IntVarP(&limit, "length", "l", 0,
+		"Minimal lenght in characters of text to train on (default 0 - unlimited)",
 	)
 	textCmd.Flags().IntVarP(&params.Offset, "offset", "o", -1,
 		"Offset in lines when loading file (default 0)",

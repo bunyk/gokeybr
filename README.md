@@ -32,7 +32,6 @@ Acrhitecture is changed from ELM-like to more classical. Code is split in follow
 
 ## TODO:
 
-- Split root cmd to multiple commands by modes - file, words, keybr, weakest
 - Reset file offset when file ends, or implement manual resetting
 - add mode to type weakest trigram with "shortest" circle sequence.
 - Write down explanation why mode above will be optimal
