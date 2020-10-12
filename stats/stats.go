@@ -2,6 +2,7 @@ package stats
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"sort"
@@ -42,21 +43,124 @@ func SaveSession(start time.Time, text []rune, timeline []float64, training bool
 	return updateStats(text, timeline, training)
 }
 
-func GenerateTrainingSession(length int) (string, error) {
-	stats, err := loadStats()
+func RandomTraining(length int) (string, error) {
+	trigrams, err := getTrigrams()
 	if err != nil {
 		return "", err
 	}
 	if length == 0 {
 		length = 100
 	}
+	return markovSequence(trigrams, length), nil
+}
+
+func getTrigrams() ([]TrigramScore, error) {
+	stats, err := loadStats()
+	if err != nil {
+		return nil, err
+	}
 	fmt.Println("Loaded stats, generating training sequence")
 
 	trigrams := stats.trigramsToTrain()
 	if len(trigrams) < NWeakest {
-		return "", fmt.Errorf("Not enought stats yet to generate good exercise")
+		return nil, fmt.Errorf("Not enought stats yet to generate good exercise")
 	}
-	return generateSequence(trigrams, length), nil
+	return trigrams, err
+}
+
+func WeakestTraining(length int) (string, error) {
+	if length == 0 {
+		length = 100
+	}
+	trigrams, err := getTrigrams()
+	if err != nil {
+		return "", err
+	}
+	if length == 0 {
+		length = 100
+	}
+	return weakestSequence(trigrams, length), nil
+}
+
+func weakestSequence(trigrams []TrigramScore, length int) string {
+	// First, we start from the weakest trigram, say abc
+	// Easiest - we would just repeat it, like abcabcabc..., but
+	// maybe bca is already trained good enough. So we threat each
+	// trigram abc as graph edge ab -> bc, with the weight = 1 / score of trigram
+	// And then we try to find shortest path from bc to ab.
+	// After that just repeat that path until we get sequence of required length
+	//start := trigrams[0].Trigram
+	start, finish := headTail(trigrams[0].Trigram)
+
+	// Build graph
+	edges := make([]edge, 0, len(trigrams))
+	vertices := make(map[string]bool)
+	for _, trigram := range trigrams {
+		h, t := headTail(trigram.Trigram)
+		w := 1e10
+		if trigram.Score > 0 {
+			w = 1.0 / trigram.Score
+		}
+		edges = append(edges, edge{
+			v1: h,
+			v2: t,
+			w:  w,
+		})
+		vertices[h] = true
+		vertices[t] = true
+	}
+
+	// compute shortest way to each vertice
+	ways := bellmanFord(start, vertices, edges)
+
+	// Trace path
+	path := make([]string, 0)
+	step := finish
+	for {
+		path = append(path, step)
+		if step == start {
+			break // back at start, now reverse path
+		}
+		if ways[step] == "" {
+			path = nil
+			break
+		}
+		step = ways[step]
+	}
+
+	return "train!"
+}
+
+// split abc to ab & bc (with unicode support)
+func headTail(trigram string) (string, string) {
+	r := []rune(trigram)
+	return string(r[:2]), string(r[1:])
+}
+
+type edge struct {
+	v1, v2 string
+	w      float64
+}
+
+// bellmanFord algorithm receives graph as list of vertices and edges
+// it returns map that says from which vertice goes shortest path to current
+func bellmanFord(start string, vertices map[string]bool, edges []edge) map[string]string {
+	distance := make(map[string]float64)
+	predecessor := make(map[string]string)
+	for v := range vertices {
+		distance[v] = math.MaxFloat64 // all vertices are unreachable by default
+		predecessor[v] = ""
+	}
+	distance[start] = 0                  // distance from start to itself is zero
+	for i := 1; i < len(vertices); i++ { // need len(vertices) - 1 repetitions
+		for _, e := range edges {
+			if distance[e.v1]+e.w < distance[e.v2] {
+				distance[e.v2] = distance[e.v1] + e.w
+				predecessor[e.v2] = e.v1
+			}
+		}
+	}
+	return predecessor
 }
 
 func updateStats(text []rune, timeline []float64, training bool) error {
@@ -124,7 +228,7 @@ type markovChain map[string]map[rune]float64
 
 const NWeakest = 10
 
-func generateSequence(trigrams []TrigramScore, length int) string {
+func markovSequence(trigrams []TrigramScore, length int) string {
 	chain := make(markovChain)
 	// build Markov chain
 	for _, ts := range trigrams {
