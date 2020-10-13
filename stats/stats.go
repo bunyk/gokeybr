@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bunyk/gokeybr/fs"
 )
@@ -90,24 +91,22 @@ func weakestSequence(trigrams []TrigramScore, length int) string {
 	// And then we try to find shortest path from bc to ab.
 	// After that just repeat that path until we get sequence of required length
 	//start := trigrams[0].Trigram
-	start, finish := headTail(trigrams[0].Trigram)
+	finish, start := headTail(trigrams[0].Trigram)
 
 	// Build graph
 	edges := make([]edge, 0, len(trigrams))
 	vertices := make(map[string]bool)
 	for _, trigram := range trigrams {
-		h, t := headTail(trigram.Trigram)
-		w := 1e10
 		if trigram.Score > 0 {
-			w = 1.0 / trigram.Score
+			h, t := headTail(trigram.Trigram)
+			edges = append(edges, edge{
+				v1: h,
+				v2: t,
+				w:  1.0 / trigram.Score,
+			})
+			vertices[h] = true
+			vertices[t] = true
 		}
-		edges = append(edges, edge{
-			v1: h,
-			v2: t,
-			w:  w,
-		})
-		vertices[h] = true
-		vertices[t] = true
 	}
 
 	// compute shortest way to each vertice
@@ -127,8 +126,26 @@ func weakestSequence(trigrams []TrigramScore, length int) string {
 		}
 		step = ways[step]
 	}
+	var loop []rune
+	if len(path) == 0 {
+		loop = []rune(trigrams[0].Trigram)
+	} else {
+		for i := len(path) - 1; i >= 0; i-- {
+			r, _ := utf8.DecodeRuneInString(path[i])
+			loop = append(loop, r)
+		}
+	}
 
-	return "train!"
+	return wrap(loop, length)
+}
+
+// wrap repeats loop (slice of runes) enough times to get string of length n
+func wrap(loop []rune, l int) string {
+	buffer := make([]rune, l)
+	for i := range buffer {
+		buffer[i] = loop[i%len(loop)]
+	}
+	return string(buffer)
 }
 
 // split abc to ab & bc (with unicode support)
