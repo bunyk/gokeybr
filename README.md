@@ -32,7 +32,6 @@ Acrhitecture is changed from Elm-like to more classical. Code is split in follow
 
 ## TODO:
 
-- Write down explanation why weakest mode is optimal
-- update timer display even when there are no events
 - implement "focused" flag to not display speed stats on screen
 - Describe better, non-linear effort -> speedup function. (Formula for energy to reach speed of light?)
+- Switch to using miliseconds in stats

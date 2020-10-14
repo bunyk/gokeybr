@@ -30,6 +30,14 @@ func New(text string) *App {
 	return a
 }
 
+// tick will implement tcell.Event, and be used for updating timers on screen
+type tick struct {
+}
+
+func (t tick) When() time.Time {
+	return time.Time{} // no need to know real time yet
+}
+
 func (a *App) Run() error {
 	encoding.Register()
 	scr, err := tcell.NewScreen()
@@ -48,12 +56,20 @@ func (a *App) Run() error {
 			events <- ev
 		}
 	}()
+	go func() {
+		t := time.NewTicker(100 * time.Millisecond)
+		for {
+			<-t.C
+			events <- tick{}
+		}
+	}()
+
 	for {
 		view.Render(scr, a.ToDisplay())
 		ev := <-events
 		switch event := ev.(type) {
 		case *tcell.EventKey:
-			if !a.reduceEvent(event) {
+			if !a.processKey(event) {
 				if cheating {
 					a.InputPosition = 0
 				}
@@ -61,7 +77,6 @@ func (a *App) Run() error {
 			}
 		case *tcell.EventResize:
 			scr.Sync()
-			view.Render(scr, a.ToDisplay())
 		}
 	}
 }
@@ -105,21 +120,21 @@ func (a App) LinesTyped() int {
 }
 
 // Return true when should continue loop
-func (a *App) reduceEvent(ev *tcell.EventKey) bool {
+func (a *App) processKey(ev *tcell.EventKey) bool {
 	if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
 		return false
 	}
 
 	switch ev.Key() {
 	case tcell.KeyBackspace, tcell.KeyBackspace2:
-		a.reduceBackspace()
+		a.processBackspace()
 	default:
-		return a.reduceCharInput(ev)
+		return a.processCharInput(ev)
 	}
 	return true
 }
 
-func (a *App) reduceBackspace() {
+func (a *App) processBackspace() {
 	if len(a.ErrorInput) == 0 {
 		return
 	}
@@ -127,7 +142,7 @@ func (a *App) reduceBackspace() {
 }
 
 // Return true when should continue loop
-func (a *App) reduceCharInput(ev *tcell.EventKey) bool {
+func (a *App) processCharInput(ev *tcell.EventKey) bool {
 	var ch rune
 	if ev.Key() == tcell.KeyRune {
 		ch = ev.Rune()
@@ -138,7 +153,7 @@ func (a *App) reduceCharInput(ev *tcell.EventKey) bool {
 		return true
 	}
 	if a.StartedAt.IsZero() {
-		a.StartedAt = time.Now()
+		a.StartedAt = ev.When()
 	}
 
 	if cheating { // always type correct :)
@@ -154,7 +169,7 @@ func (a *App) reduceCharInput(ev *tcell.EventKey) bool {
 		return a.InputPosition < len(a.Text)
 	}
 	if ch == a.Text[a.InputPosition] && len(a.ErrorInput) == 0 { // correct
-		a.Timeline[a.InputPosition] = time.Since(a.StartedAt).Seconds()
+		a.Timeline[a.InputPosition] = ev.When().Sub(a.StartedAt).Seconds()
 		a.InputPosition++
 	} else { // wrong
 		a.ErrorInput = append(a.ErrorInput, ch)
