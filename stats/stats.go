@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"sort"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -81,6 +82,22 @@ func WeakestTraining(length int) (string, error) {
 		length = 100
 	}
 	return weakestSequence(trigrams, length), nil
+}
+
+// Typing speed we think is unreachable
+const speedOfLight = 200.0 // wpm
+
+// wpm * 5 chars per word / 60 seconds in minute / 3 chars in trigram =
+// wpm / 36
+const trigramsPerSecSq = speedOfLight * speedOfLight / 1296.0
+
+func effortResult(trigramTime float64) float64 {
+	speed := 3.0 / trigramTime
+	q := speed * speed / trigramsPerSecSq
+	if q > 1 {
+		return 0
+	}
+	return math.Sqrt(1 - q)
 }
 
 func weakestSequence(trigrams []TrigramScore, length int) string {
@@ -209,11 +226,7 @@ type trigramStat struct {
 // It is frequency of trigram (it's count) multiplied by average duration of typing one
 func (ts trigramStat) Score(avgDuration float64) float64 {
 	duration := ts.Duration.Average(avgDuration)
-	score := float64(ts.Count) * duration
-	if score == 0 {
-		score = 0.00001
-	}
-	return score
+	return float64(ts.Count) * effortResult(duration)
 }
 
 type TrigramScore struct {
@@ -225,7 +238,6 @@ type TrigramScore struct {
 // the more frequent is trigram and the more long it takes to type it
 // the more important will it be to train it
 func (s stats) trigramsToTrain() []TrigramScore {
-	totalScore := 0.0
 	res := make([]TrigramScore, 0, len(s.Trigrams))
 	for t, ts := range s.Trigrams {
 		sc := ts.Score(s.AverageCharDuration() * 3)
@@ -233,7 +245,6 @@ func (s stats) trigramsToTrain() []TrigramScore {
 			Trigram: t,
 			Score:   sc,
 		})
-		totalScore += sc
 	}
 	sort.Slice(res, func(i, j int) bool {
 		return res[i].Score > res[j].Score
@@ -254,7 +265,7 @@ func markovSequence(trigrams []TrigramScore, length int) string {
 		if chain[bigram] == nil {
 			chain[bigram] = make(map[rune]float64)
 		}
-		chain[bigram][t[2]] = ts.Score * ts.Score
+		chain[bigram][t[2]] = ts.Score
 	}
 	// normalize Markov chain
 	for _, links := range chain {
@@ -320,4 +331,35 @@ type statLogEntry struct {
 	Start    string    `json:"start"`
 	Text     string    `json:"text"`
 	Timeline []float64 `json:"timeline"`
+}
+
+func GetReport() (string, error) {
+	stats, err := loadStats()
+	if err != nil {
+		return "", err
+	}
+	res := make([]string, 0)
+	print := func(f string, args ...interface{}) {
+		res = append(res, fmt.Sprintf(f, args...))
+	}
+	print("Total characters typed: %d\n", stats.TotalCharsTyped)
+	print("Total time in training: %s\n", time.Second*time.Duration(stats.TotalSessionsDuration))
+	print("Average typing speed: %.1f wpm\n", float64(stats.TotalCharsTyped)/stats.TotalSessionsDuration*60.0/5.0)
+	print("Training sessions: %d\n", stats.SessionsCount)
+
+	trigrams := stats.trigramsToTrain()
+	if len(trigrams) > 0 {
+		print("\nTrigrams that need to be trained most:\n")
+		print("Trigram | Score | Frequency | Typing time\n")
+		avDur := stats.AverageCharDuration() * 3.0
+		for _, t := range trigrams[:10] {
+			d := stats.Trigrams[t.Trigram]
+			tr := fmt.Sprintf("%#v", t.Trigram)
+			print(
+				"%7s | %5.2f | %9d | %4.2fs\n",
+				tr, t.Score, d.Count, d.Duration.Average(avDur),
+			)
+		}
+	}
+	return strings.Join(res, ""), nil
 }
