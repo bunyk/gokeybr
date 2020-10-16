@@ -87,17 +87,14 @@ func WeakestTraining(length int) (string, error) {
 // Typing speed we think is unreachable
 const speedOfLight = 150.0 // wpm
 
-// wpm * 5 chars per word / 60 seconds in minute / 3 chars in trigram =
-// wpm / 36 (36*36 = 1296)
-const trigramsPerSecSq = speedOfLight * speedOfLight / 1296.0
-
 func effortResult(trigramTime float64) float64 {
-	speed := 3.0 / trigramTime
-	q := speed * speed / trigramsPerSecSq
-	if q > 1 {
+	speed := time2wpm(trigramTime)
+	q := speed / speedOfLight
+	q = q * q
+	if q > 1.0 {
 		return 0
 	}
-	return math.Sqrt(1 - q)
+	return math.Sqrt(1.0 - q)
 }
 
 func weakestSequence(trigrams []TrigramScore, length int) string {
@@ -337,6 +334,9 @@ type statLogEntry struct {
 }
 
 const wpmPer1secTrigramTime = 36.0 // 3 / 5 * 60
+func time2wpm(t float64) float64 {
+	return wpmPer1secTrigramTime / t
+}
 
 func GetReport() (string, error) {
 	stats, err := loadStats()
@@ -349,10 +349,10 @@ func GetReport() (string, error) {
 	}
 	print("Total characters typed: %d\n", stats.TotalCharsTyped)
 	print("Total time in training: %s\n", time.Second*time.Duration(stats.TotalSessionsDuration))
-	print("Average typing speed: %.1f wpm\n", float64(stats.TotalCharsTyped)/stats.TotalSessionsDuration*60.0/5.0)
+	avDur := stats.AverageCharDuration() * 3.0
+	print("Average typing speed: %.1f wpm\n", time2wpm(avDur))
 	print("Training sessions: %d\n", stats.SessionsCount)
 	// TODO: fastest/slowest trigram?
-	avDur := stats.AverageCharDuration() * 3.0
 	var fastestTr, slowestTr string
 	fastestTime := 10.0
 	slowestTime := 0.0
@@ -368,8 +368,8 @@ func GetReport() (string, error) {
 		}
 	}
 	print("\nTrigram stats:\n")
-	print("Slowest: %#v %4.2fs (%.1f wpm)\n", slowestTr, slowestTime, wpmPer1secTrigramTime/slowestTime)
-	print("Fastest: %#v %4.2fs (%.1f wpm)\n", fastestTr, fastestTime, wpmPer1secTrigramTime/fastestTime)
+	print("Slowest: %#v %4.2fs (%.1f wpm)\n", slowestTr, slowestTime, time2wpm(slowestTime))
+	print("Fastest: %#v %4.2fs (%.1f wpm)\n", fastestTr, fastestTime, time2wpm(fastestTime))
 
 	trigrams := stats.trigramsToTrain()
 	if len(trigrams) > 0 {
@@ -381,7 +381,7 @@ func GetReport() (string, error) {
 			dur := d.Duration.Average(avDur)
 			print(
 				"%7s | %5.2f | %9d | %4.2fs (%.1f wpm)\n",
-				tr, t.Score, d.Count, dur, wpmPer1secTrigramTime/dur,
+				tr, t.Score, d.Count, dur, time2wpm(dur),
 			)
 		}
 	}
