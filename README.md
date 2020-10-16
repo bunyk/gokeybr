@@ -29,6 +29,3 @@ Acrhitecture is changed from Elm-like to more classical. Code is split in follow
 - `view/` - anyting related to displaying information on the screen
 - `stats/` - keeping track of your progress & helping to generate most useful training session
 - `fs/` - utilities to work with filesystem storage
-
-## TODO:
-- Switch to using integer miliseconds in stats to save space
