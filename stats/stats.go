@@ -85,10 +85,10 @@ func WeakestTraining(length int) (string, error) {
 }
 
 // Typing speed we think is unreachable
-const speedOfLight = 200.0 // wpm
+const speedOfLight = 150.0 // wpm
 
 // wpm * 5 chars per word / 60 seconds in minute / 3 chars in trigram =
-// wpm / 36
+// wpm / 36 (36*36 = 1296)
 const trigramsPerSecSq = speedOfLight * speedOfLight / 1296.0
 
 func effortResult(trigramTime float64) float64 {
@@ -262,6 +262,9 @@ func markovSequence(trigrams []TrigramScore, length int) string {
 	for _, ts := range trigrams {
 		t := []rune(ts.Trigram)
 		bigram := string(t[:2])
+		if ts.Score == 0 {
+			ts.Score = 0.00000001
+		}
 		if chain[bigram] == nil {
 			chain[bigram] = make(map[rune]float64)
 		}
@@ -333,6 +336,8 @@ type statLogEntry struct {
 	Timeline []float64 `json:"timeline"`
 }
 
+const wpmPer1secTrigramTime = 36.0 // 3 / 5 * 60
+
 func GetReport() (string, error) {
 	stats, err := loadStats()
 	if err != nil {
@@ -346,18 +351,37 @@ func GetReport() (string, error) {
 	print("Total time in training: %s\n", time.Second*time.Duration(stats.TotalSessionsDuration))
 	print("Average typing speed: %.1f wpm\n", float64(stats.TotalCharsTyped)/stats.TotalSessionsDuration*60.0/5.0)
 	print("Training sessions: %d\n", stats.SessionsCount)
+	// TODO: fastest/slowest trigram?
+	avDur := stats.AverageCharDuration() * 3.0
+	var fastestTr, slowestTr string
+	fastestTime := 10.0
+	slowestTime := 0.0
+	for t, s := range stats.Trigrams {
+		dur := s.Duration.Average(avDur)
+		if dur < fastestTime {
+			fastestTime = dur
+			fastestTr = t
+		}
+		if dur > slowestTime {
+			slowestTime = dur
+			slowestTr = t
+		}
+	}
+	print("\nTrigram stats:\n")
+	print("Slowest: %#v %4.2fs (%.1f wpm)\n", slowestTr, slowestTime, wpmPer1secTrigramTime/slowestTime)
+	print("Fastest: %#v %4.2fs (%.1f wpm)\n", fastestTr, fastestTime, wpmPer1secTrigramTime/fastestTime)
 
 	trigrams := stats.trigramsToTrain()
 	if len(trigrams) > 0 {
-		print("\nTrigrams that need to be trained most:\n")
+		print("\nNeed to be trained most:\n")
 		print("Trigram | Score | Frequency | Typing time\n")
-		avDur := stats.AverageCharDuration() * 3.0
-		for _, t := range trigrams[:10] {
+		for _, t := range trigrams[:20] {
 			d := stats.Trigrams[t.Trigram]
 			tr := fmt.Sprintf("%#v", t.Trigram)
+			dur := d.Duration.Average(avDur)
 			print(
-				"%7s | %5.2f | %9d | %4.2fs\n",
-				tr, t.Score, d.Count, d.Duration.Average(avDur),
+				"%7s | %5.2f | %9d | %4.2fs (%.1f wpm)\n",
+				tr, t.Score, d.Count, dur, wpmPer1secTrigramTime/dur,
 			)
 		}
 	}
