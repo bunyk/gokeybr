@@ -20,6 +20,7 @@ type App struct {
 	InputPosition int
 	ErrorInput    []rune
 	StartedAt     time.Time
+	Zen           bool
 }
 
 func New(text string) *App {
@@ -56,13 +57,15 @@ func (a *App) Run() error {
 			events <- ev
 		}
 	}()
-	go func() {
-		t := time.NewTicker(100 * time.Millisecond)
-		for {
-			<-t.C
-			events <- tick{}
-		}
-	}()
+	if !a.Zen {
+		go func() {
+			t := time.NewTicker(100 * time.Millisecond)
+			for {
+				<-t.C
+				events <- tick{}
+			}
+		}()
+	}
 
 	for {
 		view.Render(scr, a.ToDisplay())
@@ -88,6 +91,7 @@ func (a App) ToDisplay() view.DisplayableData {
 		WrongText: a.ErrorInput,
 		TODOText:  a.Text[a.InputPosition:],
 		StartedAt: a.StartedAt,
+		Zen:       a.Zen,
 	}
 }
 

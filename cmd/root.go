@@ -10,6 +10,7 @@ import (
 	"github.com/bunyk/gokeybr/stats"
 )
 
+var zen bool
 var rootCmd = &cobra.Command{
 	Use:  "gokeybr",
 	Long: Help,
@@ -31,6 +32,7 @@ func saveStats(a *app.App, isTraining bool) {
 }
 
 func Execute() {
+	rootCmd.PersistentFlags().BoolVarP(&zen, "zen", "z", false, "run training session in \"zen mode\" (minimal screen output)")
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

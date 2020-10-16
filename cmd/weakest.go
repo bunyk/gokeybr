@@ -24,6 +24,7 @@ var weakestCmd = &cobra.Command{
 			return
 		}
 		a := app.New(text)
+		a.Zen = zen
 		err = a.Run()
 		if err != nil {
 			fmt.Println(err)

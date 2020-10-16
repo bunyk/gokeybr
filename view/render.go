@@ -22,26 +22,31 @@ type DisplayableData struct {
 	WrongText []rune
 	TODOText  []rune
 	StartedAt time.Time
+	Zen       bool
 }
 
 func Render(s tcell.Screen, dd DisplayableData) {
 	s.Clear()
 	w, h := s.Size()
 
-	write(s, dd.Header, 1, 0, tcell.StyleDefault)
+	if !dd.Zen {
+		write(s, dd.Header, 1, 0, tcell.StyleDefault)
+	}
 
 	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5, h-4)
 
-	// Stats:
-	seconds := 0.0
-	wpm := 0.0
-	if !dd.StartedAt.IsZero() {
-		seconds = time.Since(dd.StartedAt).Seconds()
-		wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
+	if !dd.Zen {
+		// Stats:
+		seconds := 0.0
+		wpm := 0.0
+		if !dd.StartedAt.IsZero() {
+			seconds = time.Since(dd.StartedAt).Seconds()
+			wpm = wordsPerChar * float64(len(dd.DoneText)) / seconds * 60.0
+		}
+		stats := fmt.Sprintf("%.1f sec, %.1f wpm", seconds, wpm)
+		x := (w - utf8.RuneCountInString(stats)) / 2
+		write(s, stats, x, h-1, tcell.StyleDefault)
 	}
-	stats := fmt.Sprintf("%.1f sec, %.1f wpm", seconds, wpm)
-	x := (w - utf8.RuneCountInString(stats)) / 2
-	write(s, stats, x, h-1, tcell.StyleDefault)
 	s.Show()
 }
 

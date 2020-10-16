@@ -21,6 +21,7 @@ var textCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		a := app.New(text)
+		a.Zen = zen
 		err = a.Run()
 		if err != nil {
 			log.Fatal(err)
