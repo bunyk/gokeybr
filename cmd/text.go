@@ -11,9 +11,10 @@ import (
 
 var offset, limit int
 var textCmd = &cobra.Command{
-	Use:   "text [flags] [file with text (\"-\" - stdin)]",
-	Short: "train to type contents of some file",
-	Args:  cobra.ExactArgs(1),
+	Use:     "text [flags] [file with text (\"-\" - stdin)]",
+	Aliases: []string{"file"},
+	Short:   "train to type contents of some file",
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		text, err := phrase.FromFile(args[0], offset, limit)
 		if err != nil {

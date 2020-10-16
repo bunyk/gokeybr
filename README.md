@@ -31,7 +31,5 @@ Acrhitecture is changed from Elm-like to more classical. Code is split in follow
 - `fs/` - utilities to work with filesystem storage
 
 ## TODO:
-
-- Test non-linear effort -> speedup function.
 - implement "focused" flag to not display speed stats on screen
 - Switch to using integer miliseconds in stats to save space
