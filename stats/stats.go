@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/bunyk/gokeybr/fs"
 )
@@ -145,7 +144,7 @@ func weakestSequence(trigrams []TrigramScore, length int) string {
 		loop = []rune(trigrams[0].Trigram)
 	} else {
 		for i := len(path) - 1; i >= 0; i-- {
-			r, _ := utf8.DecodeRuneInString(path[i])
+			r := []rune(path[i])[0]
 			loop = append(loop, r)
 		}
 	}

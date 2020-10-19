@@ -94,6 +94,9 @@ func slice(lines []string, minLength int) []string {
 const ProgressFile = "progress.json"
 
 func UpdateFileProgress(filename string, linesTyped, offset int) error {
+	if filename == "-" { // Not saving for stdin
+		return nil
+	}
 	if linesTyped < 1 {
 		return nil // need to type at least line to update progress
 	}
