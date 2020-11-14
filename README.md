@@ -44,7 +44,7 @@ Deliberate practice different, it is practice that focuses on tasks beyond your 
 - [typeracer](https://play.typeracer.com/) - web app where you race against others by typing quotes from books or movies.
 - [keybr.com](https://www.keybr.com/) - web app that gives you random "words" to type, gathers some stats and somehow tunes exercises to better improve your progress.
 - [typelit.io](https://www.typelit.io/) - web app that allows you to practice by typing good classic novels. So you could combine fun of reading with practice of typing. Also you will practice typing sentences of best authors, that should improve your language too. (This kind of practice could be done with `gokeybr` too, just save your favourite novel in some text file, and run `gokeybr text novel.txt`. `gokeybr` will safe last line you typed on, so in each session you will continue from where you left off last time.)
-` [gotypist](https://github.com/pb-/gotypist) - app for terminal where you type texts line by line, each line three times - slow (minimizing errors), fast (ignoring errors, maximizing speed), and 
+- [gotypist](https://github.com/pb-/gotypist) - app for terminal where you type texts line by line, each line three times - slow (minimizing errors), fast (ignoring errors, maximizing speed), and normal (trying to be quick and not make errors in the same time).
 
 
 ## Code

@@ -373,13 +373,13 @@ func GetReport() (string, error) {
 	trigrams := stats.trigramsToTrain()
 	if len(trigrams) > 0 {
 		print("\nNeed to be trained most:\n")
-		print("Trigram | Score | Frequency | Typing time\n")
+		print("Trigram |   Score | Frequency | Typing time\n")
 		for _, t := range trigrams[:20] {
 			d := stats.Trigrams[t.Trigram]
 			tr := fmt.Sprintf("%#v", t.Trigram)
 			dur := d.Duration.Average(avDur)
 			print(
-				"%7s | %5.2f | %9d | %4.2fs (%.1f wpm)\n",
+				"%7s | %7.2f | %9d | %4.2fs (%.1f wpm)\n",
 				tr, t.Score, d.Count, dur, time2wpm(dur),
 			)
 		}
