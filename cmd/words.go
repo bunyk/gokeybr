@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/bunyk/gokeybr/app"
 	"github.com/bunyk/gokeybr/phrase"
@@ -25,14 +24,11 @@ var wordsCmd = &cobra.Command{
 			filename = args[0]
 		}
 		text, err := phrase.Words(filename, wordsCount)
-		if err != nil {
-			log.Fatal(err)
-		}
-		a := app.New(text)
+		fatal(err)
+		a, err := app.New(text)
+		fatal(err)
 		err = a.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
+		fatal(err)
 		saveStats(a, false)
 	},
 }

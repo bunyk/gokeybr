@@ -54,6 +54,6 @@ Acrhitecture is changed from Elm-like to more classical. Code is split in follow
 - `cmd/` - is entry point of the program, handles parsing of arguments and starts app
 - `app/` - contains code of event loop and overall logic of typing session
 - `phrase/` - loading and generation of training texts
-- `view/` - anyting related to displaying information on the screen
+- `view/` - anything related to displaying information on the screen
 - `stats/` - keeping track of your progress & helping to generate most useful training session
 - `fs/` - utilities to work with filesystem storage

@@ -11,6 +11,7 @@ import (
 )
 
 var zen bool
+var mute bool
 var rootCmd = &cobra.Command{
 	Use:  "gokeybr",
 	Long: Help,
@@ -31,9 +32,16 @@ func saveStats(a *app.App, isTraining bool) {
 	}
 }
 
-func Execute() {
-	rootCmd.PersistentFlags().BoolVarP(&zen, "zen", "z", false, "run training session in \"zen mode\" (minimal screen output)")
-	if err := rootCmd.Execute(); err != nil {
+func fatal(err error) {
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func Execute() {
+	pf := rootCmd.PersistentFlags()
+	pf.BoolVarP(&zen, "zen", "z", false, "run training session in \"zen mode\" (minimal screen output)")
+	pf.BoolVarP(&mute, "mute", "m", false, "Do not produce sound when wrong key is hit")
+	fatal(rootCmd.Execute())
 }

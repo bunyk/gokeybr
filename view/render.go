@@ -8,7 +8,9 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-const wordsPerChar = 0.2 // In computing WPM word is considered to be in avearge 5 characters long
+// wordsPerChar is used for computing WPM.
+// Word is considered to be in average 5 characters long.
+const wordsPerChar = 0.2
 
 var doneStyle tcell.Style = tcell.StyleDefault.
 	Foreground(tcell.ColorGreen)

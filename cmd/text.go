@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/bunyk/gokeybr/app"
 	"github.com/bunyk/gokeybr/phrase"
 	"github.com/spf13/cobra"
@@ -17,20 +14,20 @@ var textCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		text, err := phrase.FromFile(args[0], offset, limit)
-		if err != nil {
-			log.Fatal(err)
-		}
-		a := app.New(text)
+		fatal(err)
+
+		a, err := app.New(text)
+		fatal(err)
 		a.Zen = zen
-		err = a.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
+		a.Mute = mute
+
+		a.Run()
+		fatal(err)
+
 		saveStats(a, false)
+
 		err = phrase.UpdateFileProgress(args[0], a.LinesTyped(), offset)
-		if err != nil {
-			fmt.Println(err)
-		}
+		fatal(err)
 	},
 }
 

@@ -21,14 +21,26 @@ type App struct {
 	ErrorInput    []rune
 	StartedAt     time.Time
 	Zen           bool
+	Mute          bool
+
+	scr tcell.Screen
 }
 
-func New(text string) *App {
+func New(text string) (*App, error) {
 	a := &App{}
 	a.ErrorInput = make([]rune, 0, 20)
 	a.Text = []rune(text)
 	a.Timeline = make([]float64, len(a.Text))
-	return a
+
+	encoding.Register()
+	var err error
+	if a.scr, err = tcell.NewScreen(); err != nil {
+		return a, err
+	}
+	if err = a.scr.Init(); err != nil {
+		return a, err
+	}
+	return a, nil
 }
 
 // tick will implement tcell.Event, and be used for updating timers on screen
@@ -40,20 +52,11 @@ func (t tick) When() time.Time {
 }
 
 func (a *App) Run() error {
-	encoding.Register()
-	scr, err := tcell.NewScreen()
-	if err != nil {
-		return err
-	}
-	err = scr.Init()
-	if err != nil {
-		return err
-	}
-	defer scr.Fini()
+	defer a.scr.Fini()
 	events := make(chan tcell.Event)
 	go func() {
 		for {
-			ev := scr.PollEvent()
+			ev := a.scr.PollEvent()
 			events <- ev
 		}
 	}()
@@ -68,7 +71,7 @@ func (a *App) Run() error {
 	}
 
 	for {
-		view.Render(scr, a.ToDisplay())
+		view.Render(a.scr, a.ToDisplay())
 		ev := <-events
 		switch event := ev.(type) {
 		case *tcell.EventKey:
@@ -79,7 +82,7 @@ func (a *App) Run() error {
 				return nil
 			}
 		case *tcell.EventResize:
-			scr.Sync()
+			a.scr.Sync()
 		}
 	}
 }
@@ -177,6 +180,9 @@ func (a *App) processCharInput(ev *tcell.EventKey) bool {
 		a.InputPosition++
 	} else { // wrong
 		a.ErrorInput = append(a.ErrorInput, ch)
+		if !a.Mute {
+			a.scr.Beep()
+		}
 	}
 	return a.InputPosition < len(a.Text)
 }

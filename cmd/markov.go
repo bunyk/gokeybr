@@ -20,17 +20,14 @@ var markovCmd = &cobra.Command{
 			fmt.Printf("Sequence should be at least %d characters long\n", stats.MinSessionLength)
 		}
 		text, err := stats.RandomTraining(markovLength)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		a := app.New(text)
+		fatal(err)
+		a, err := app.New(text)
+		fatal(err)
 		a.Zen = zen
+		a.Mute = mute
+
 		err = a.Run()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		fatal(err)
 
 		saveStats(a, true)
 	},
