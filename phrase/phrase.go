@@ -11,21 +11,22 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bunyk/gokeybr/fs"
 )
 
-func FromFile(filename string, offset, minLength int) (string, error) {
-	items, err := readFileLines(filename, offset)
+func FromFile(filename string, offset, minLength int) (string, int, error) {
+	items, skipped, err := readFileLines(filename, offset)
 	if err != nil {
-		return "", err
+		return "", skipped, err
 	}
 	items = slice(items, minLength)
-	return strings.Join(items, "\n"), nil
+	return strings.Join(items, "\n"), skipped, nil
 }
 
 func Words(filename string, n int) (string, error) {
-	words, err := readFileLines(filename, 0)
+	words, _, err := readFileLines(filename, 0)
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +39,7 @@ func Words(filename string, n int) (string, error) {
 	return strings.Join(phrase, " "), nil
 }
 
-func readFileLines(filename string, offset int) (lines []string, err error) {
+func readFileLines(filename string, offset int) (lines []string, skipped int, err error) {
 	var data []byte
 	if filename == "-" {
 		data, err = ioutil.ReadAll(os.Stdin)
@@ -69,6 +70,7 @@ func readFileLines(filename string, offset int) (lines []string, err error) {
 		}
 		if skip > 0 {
 			skip--
+			skipped += utf8.RuneCountInString(line) + 1
 		} else {
 			lines = append(lines, line[:len(line)-1])
 		}

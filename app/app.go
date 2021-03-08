@@ -20,8 +20,10 @@ type App struct {
 	InputPosition int
 	ErrorInput    []rune
 	StartedAt     time.Time
-	Zen           bool
-	Mute          bool
+	Offset        int
+
+	Zen  bool
+	Mute bool
 
 	scr tcell.Screen
 }
@@ -95,6 +97,7 @@ func (a App) ToDisplay() view.DisplayableData {
 		TODOText:  a.Text[a.InputPosition:],
 		StartedAt: a.StartedAt,
 		Zen:       a.Zen,
+		Offset:    a.Offset,
 	}
 }
 

@@ -13,13 +13,14 @@ var textCmd = &cobra.Command{
 	Short:   "train to type contents of some file",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		text, err := phrase.FromFile(args[0], offset, limit)
+		text, skipped, err := phrase.FromFile(args[0], offset, limit)
 		fatal(err)
 
 		a, err := app.New(text)
 		fatal(err)
 		a.Zen = zen
 		a.Mute = mute
+		a.Offset = skipped
 
 		a.Run()
 		fatal(err)

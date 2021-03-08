@@ -25,6 +25,7 @@ type DisplayableData struct {
 	TODOText  []rune
 	StartedAt time.Time
 	Zen       bool
+	Offset    int
 }
 
 func Render(s tcell.Screen, dd DisplayableData) {
@@ -39,7 +40,7 @@ func Render(s tcell.Screen, dd DisplayableData) {
 		// Stats:
 		seconds := 0.0
 		wpm := 0.0
-		done := float64(len(dd.DoneText))
+		done := float64(len(dd.DoneText) + dd.Offset)
 		if !dd.StartedAt.IsZero() {
 			seconds = time.Since(dd.StartedAt).Seconds()
 			wpm = wordsPerChar * done / seconds * 60.0
