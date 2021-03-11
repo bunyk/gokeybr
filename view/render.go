@@ -40,7 +40,7 @@ func Render(s tcell.Screen, dd DisplayableData) {
 		// Stats:
 		seconds := 0.0
 		wpm := 0.0
-		done := float64(len(dd.DoneText) + dd.Offset)
+		done := float64(len(dd.DoneText))
 		if !dd.StartedAt.IsZero() {
 			seconds = time.Since(dd.StartedAt).Seconds()
 			wpm = wordsPerChar * done / seconds * 60.0
@@ -49,6 +49,7 @@ func Render(s tcell.Screen, dd DisplayableData) {
 		x := (w - utf8.RuneCountInString(stats)) / 2
 		write(s, stats, x, h-1, tcell.StyleDefault)
 
+		done += float64(dd.Offset)
 		progress := done / (done + float64(len(dd.TODOText)+len(dd.WrongText)))
 		progressIndicator := fmt.Sprintf("%.1f%%", progress*100)
 		x = w - utf8.RuneCountInString(progressIndicator)
