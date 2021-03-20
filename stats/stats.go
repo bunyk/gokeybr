@@ -219,7 +219,8 @@ type trigramStat struct {
 }
 
 // Score approximates time that will be spent typing this trigram
-// It is frequency of trigram (it's count) multiplied by average duration of typing one
+// It is total frequency of trigram (it's count)
+// multiplied by current average duration of typing one
 func (ts trigramStat) Score(avgDuration float64) float64 {
 	duration := ts.Duration.Average(avgDuration)
 	return float64(ts.Count) * effortResult(duration)
@@ -313,17 +314,22 @@ func (s *stats) addSession(text []rune, timeline []float64, training bool) {
 	}
 }
 
+var statsCache *stats
+
 func loadStats() (*stats, error) {
-	var s stats
-	err := fs.LoadJSON(StatsFile, &s)
+	if statsCache != nil {
+		return statsCache, nil
+	}
+	statsCache = &stats{Trigrams: make(map[string]trigramStat)}
+	err := fs.LoadJSON(StatsFile, statsCache)
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Printf("Warning: File %s does not exist! It will be created.\n", StatsFile)
-			return &stats{Trigrams: make(map[string]trigramStat)}, nil
+			return statsCache, nil
 		}
 		return nil, err
 	}
-	return &s, nil
+	return statsCache, nil
 }
 
 type statLogEntry struct {
@@ -337,6 +343,15 @@ func time2wpm(t float64) float64 {
 	return wpmPer1secTrigramTime / t
 }
 
+func AverageWPM() float64 {
+	stats, err := loadStats()
+	if err != nil { // If stats loaded to fail
+		return 50.0 // return world average
+	}
+	avDur := stats.AverageCharDuration() * 3.0
+	return time2wpm(avDur)
+}
+
 func GetReport() (string, error) {
 	stats, err := loadStats()
 	if err != nil {
@@ -348,15 +363,13 @@ func GetReport() (string, error) {
 	}
 	print("Total characters typed: %d\n", stats.TotalCharsTyped)
 	print("Total time in training: %s\n", time.Second*time.Duration(stats.TotalSessionsDuration))
-	avDur := stats.AverageCharDuration() * 3.0
-	print("Average typing speed: %.1f wpm\n", time2wpm(avDur))
+	print("Average typing speed: %.1f wpm\n", AverageWPM())
 	print("Training sessions: %d\n", stats.SessionsCount)
-	// TODO: fastest/slowest trigram?
 	var fastestTr, slowestTr string
 	fastestTime := 10.0
 	slowestTime := 0.0
 	for t, s := range stats.Trigrams {
-		dur := s.Duration.Average(avDur)
+		dur := s.Duration.Average(0)
 		if dur < fastestTime {
 			fastestTime = dur
 			fastestTr = t
@@ -377,11 +390,15 @@ func GetReport() (string, error) {
 		for _, t := range trigrams[:20] {
 			d := stats.Trigrams[t.Trigram]
 			tr := fmt.Sprintf("%#v", t.Trigram)
-			dur := d.Duration.Average(avDur)
+			dur := d.Duration.Average(0)
 			print(
 				"%7s | %7.2f | %9d | %4.2fs (%.1f wpm)\n",
-				tr, t.Score, d.Count, dur, time2wpm(dur),
+				tr, t.Score/stats.TotalSessionsDuration*1000.0, d.Count, dur, time2wpm(dur),
 			)
+			// we divide score to total session duration go get score approximated in promille
+			// if trigram will be the only one we type - it will have 1000 score,
+			// if it's current typing speed equals to total, average, or less if it is typed faster.
+			// if it is typed slower - score will be greater than 1000
 		}
 	}
 	return strings.Join(res, ""), nil
