@@ -5,6 +5,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/bunyk/gokeybr/stats"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -45,28 +46,41 @@ func Render(s tcell.Screen, dd DisplayableData) {
 		write(s, dd.Header, 1, 0, tcell.StyleDefault)
 
 		// Stats:
+		timer := "Go!"
 		wpm := 0.0
-		done := float64(len(dd.DoneText))
-		if len(dd.DoneText) > 0 {
+		if !dd.StartedAt.IsZero() {
+			seconds := time.Since(dd.StartedAt).Seconds()
+			timer = fmt.Sprintf("%.1f sec", seconds)
 			if len(dd.DoneText) > 10 {
-				tenCharsSeconds := dd.Timeline[len(dd.DoneText)-1] - dd.Timeline[len(dd.DoneText)-11]
+				tenCharsSeconds := seconds - dd.Timeline[len(dd.DoneText)-10]
 				wpm = wordsPerChar * 10 / tenCharsSeconds * 60.0
 			}
 		}
-		stats := "Go!"
-		if !dd.StartedAt.IsZero() {
-			seconds := time.Since(dd.StartedAt).Seconds()
-			stats = fmt.Sprintf("%.1f sec", seconds)
-		}
-		if wpm > 0 {
-			stats += fmt.Sprintf(", %.1f wpm", wpm)
-		}
-		x := (w - utf8.RuneCountInString(stats)) / 2
-		write(s, stats, x, h-1, tcell.StyleDefault)
 
-		done += float64(dd.Offset)
+		// Show timer
+		x := (w - utf8.RuneCountInString(timer)) / 2
+		write(s, timer, x, h-1, tcell.StyleDefault)
+
+		// Show wpm
+		if wpm > 0 {
+			speedometer := wpm / stats.AverageWPM() // compute speed improvement relative to average
+			speedStyle := redBar                    // show slow speeds in red
+			if speedometer >= 0.90 {                // Keeping in range of 90% of average speed is good
+				speedStyle = greenBar
+			}
+			speedometer = speedometer / 2.0 // so average speed is displayed at the middle of speedometer
+			if speedometer > 1.0 {
+				speedometer = 1.0
+			}
+			vBar(s, 0, 0, int(float64(h)*speedometer), speedStyle)
+
+			write(s, fmt.Sprintf("%.0f wpm", wpm), 0, h-1, tcell.StyleDefault)
+		}
+
+		// Show progress
+		done := float64(len(dd.DoneText)) + float64(dd.Offset)
 		progress := done / (done + float64(len(dd.TODOText)+len(dd.WrongText)))
-		vProgress(s, progress, w-1, 0, h)
+		vBar(s, w-1, 0, int(float64(h)*progress), greenBar)
 		progressIndicator := fmt.Sprintf("%.1f%%", progress*100)
 		x = w - utf8.RuneCountInString(progressIndicator)
 		write(s, progressIndicator, x, h-1, tcell.StyleDefault)
@@ -74,13 +88,9 @@ func Render(s tcell.Screen, dd DisplayableData) {
 	s.Show()
 }
 
-func vProgress(scr tcell.Screen, progress float64, x, y, h int) {
-	st := greenBar
+func vBar(scr tcell.Screen, x, y, h int, style tcell.Style) {
 	for i := 0; i < h; i++ {
-		if float64(i)/float64(h) >= progress {
-			st = tcell.StyleDefault
-		}
-		scr.SetContent(x, y+i, ' ', nil, st)
+		scr.SetContent(x, y+i, ' ', nil, style)
 	}
 }
 
