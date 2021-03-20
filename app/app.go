@@ -95,6 +95,7 @@ func (a App) ToDisplay() view.DisplayableData {
 		DoneText:  a.Text[:a.InputPosition],
 		WrongText: a.ErrorInput,
 		TODOText:  a.Text[a.InputPosition:],
+		Timeline:  a.Timeline,
 		StartedAt: a.StartedAt,
 		Zen:       a.Zen,
 		Offset:    a.Offset,

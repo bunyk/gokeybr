@@ -14,8 +14,14 @@ const wordsPerChar = 0.2
 
 var doneStyle tcell.Style = tcell.StyleDefault.
 	Foreground(tcell.ColorGreen)
-var errorStyle = tcell.StyleDefault.
-	Background(tcell.ColorRed).
+
+var redBar = tcell.StyleDefault.
+	Background(tcell.ColorRed)
+
+var greenBar = tcell.StyleDefault.
+	Background(tcell.ColorGreen)
+
+var errorStyle = redBar.
 	Foreground(tcell.ColorBlack)
 
 type DisplayableData struct {
@@ -23,6 +29,7 @@ type DisplayableData struct {
 	DoneText  []rune
 	WrongText []rune
 	TODOText  []rune
+	Timeline  []float64
 	StartedAt time.Time
 	Zen       bool
 	Offset    int
@@ -38,24 +45,43 @@ func Render(s tcell.Screen, dd DisplayableData) {
 		write(s, dd.Header, 1, 0, tcell.StyleDefault)
 
 		// Stats:
-		seconds := 0.0
 		wpm := 0.0
 		done := float64(len(dd.DoneText))
-		if !dd.StartedAt.IsZero() {
-			seconds = time.Since(dd.StartedAt).Seconds()
-			wpm = wordsPerChar * done / seconds * 60.0
+		if len(dd.DoneText) > 0 {
+			if len(dd.DoneText) > 10 {
+				tenCharsSeconds := dd.Timeline[len(dd.DoneText)-1] - dd.Timeline[len(dd.DoneText)-11]
+				wpm = wordsPerChar * 10 / tenCharsSeconds * 60.0
+			}
 		}
-		stats := fmt.Sprintf("%.1f sec, %.1f wpm", seconds, wpm)
+		stats := "Go!"
+		if !dd.StartedAt.IsZero() {
+			seconds := time.Since(dd.StartedAt).Seconds()
+			stats = fmt.Sprintf("%.1f sec", seconds)
+		}
+		if wpm > 0 {
+			stats += fmt.Sprintf(", %.1f wpm", wpm)
+		}
 		x := (w - utf8.RuneCountInString(stats)) / 2
 		write(s, stats, x, h-1, tcell.StyleDefault)
 
 		done += float64(dd.Offset)
 		progress := done / (done + float64(len(dd.TODOText)+len(dd.WrongText)))
+		vProgress(s, progress, w-1, 0, h)
 		progressIndicator := fmt.Sprintf("%.1f%%", progress*100)
 		x = w - utf8.RuneCountInString(progressIndicator)
 		write(s, progressIndicator, x, h-1, tcell.StyleDefault)
 	}
 	s.Show()
+}
+
+func vProgress(scr tcell.Screen, progress float64, x, y, h int) {
+	st := greenBar
+	for i := 0; i < h; i++ {
+		if float64(i)/float64(h) >= progress {
+			st = tcell.StyleDefault
+		}
+		scr.SetContent(x, y+i, ' ', nil, st)
+	}
 }
 
 func write(scr tcell.Screen, text string, x, y int, style tcell.Style) {
