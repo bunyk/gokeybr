@@ -401,5 +401,75 @@ func GetReport() (string, error) {
 			// if it is typed slower - score will be greater than 1000
 		}
 	}
+	if stats.TotalSessionsDuration < 600 { // Less than 10 minutes of training, not much to show
+		print("\nTrain more to get some progress!")
+		return strings.Join(res, ""), nil
+	}
+	progressInterval := time.Minute * 10      // Show progress in 10 minute intervals
+	if stats.TotalSessionsDuration > 2*3600 { // If trained for more than 2 hours - in 30 minutes intervals
+		progressInterval = time.Minute * 30
+	}
+	if stats.TotalSessionsDuration > 10*3600 { // If trained for more than 10 hours - in hour intervals
+		progressInterval = time.Minute * 30
+	}
+	progress, err := wpmProgress(progressInterval)
+	if err != nil {
+		return "", err
+	}
+	print("\nTraining progress:\n")
+	print("   Time | WPM\n")
+	for i, wpm := range progress {
+		print("%7s | %.1f\n", formatDuration(time.Duration(i)*progressInterval), wpm)
+	}
 	return strings.Join(res, ""), nil
+}
+
+func formatDuration(d time.Duration) string {
+	h := int(d.Hours())
+	m := int(d.Minutes())
+	if h == 0 {
+		return fmt.Sprintf("%dm", m)
+	}
+	return fmt.Sprintf("%dh%dm", h, m-h*60)
+}
+
+const WPMinCPS = 12.0
+
+func calcWPM(chars int, seconds float64) float64 {
+	return float64(chars) / seconds * WPMinCPS
+}
+
+func wpmProgress(intervalSize time.Duration) ([]float64, error) {
+	logStatsIter, err := fs.NewJSONLinesIterator(LogStatsFile)
+	if err != nil {
+		return nil, err
+	}
+	defer logStatsIter.Close()
+
+	var logEntry statLogEntry
+	iSec := intervalSize.Seconds()
+	var countedSeconds float64
+	var countedChars int
+	var res []float64
+	for {
+		cont, err := logStatsIter.UnmarshalNextLine(&logEntry)
+		if err != nil {
+			return nil, err
+		}
+		if !cont {
+			break
+		}
+		for i, t := range logEntry.Timeline {
+			if t-countedSeconds >= iSec { // Counted approximately for interval
+				res = append(res, calcWPM(i-countedChars, t-countedSeconds))
+				countedSeconds = t
+				countedChars = i
+			}
+		}
+		// compute counting debt
+		countedSeconds = countedSeconds - logEntry.Timeline[len(logEntry.Timeline)-1]
+		countedChars = countedChars - len(logEntry.Timeline)
+	}
+	res = append(res, calcWPM(-countedChars, -countedSeconds))
+	return res, nil
 }

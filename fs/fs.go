@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -55,4 +56,32 @@ func AppendJSONLine(filename string, v interface{}) error {
 	}
 	_, err = fmt.Fprintln(f, string(data))
 	return err
+}
+
+type JSONLinesIterator struct {
+	scanner *bufio.Scanner
+	file    *os.File
+}
+
+func NewJSONLinesIterator(filename string) (*JSONLinesIterator, error) {
+	file, err := os.Open(homeFilePath(filename))
+	if err != nil {
+		return nil, err
+	}
+	return &JSONLinesIterator{
+		file:    file,
+		scanner: bufio.NewScanner(file),
+	}, nil
+}
+
+func (i JSONLinesIterator) Close() {
+	i.file.Close()
+}
+
+func (i JSONLinesIterator) UnmarshalNextLine(v interface{}) (bool, error) {
+	if !i.scanner.Scan() {
+		return false, i.scanner.Err()
+	}
+
+	return true, json.Unmarshal(i.scanner.Bytes(), v)
 }
