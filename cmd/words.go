@@ -27,6 +27,10 @@ var wordsCmd = &cobra.Command{
 		fatal(err)
 		a, err := app.New(text)
 		fatal(err)
+		a.Zen = zen
+		a.Mute = mute
+		a.MinSpeed = minSpeed
+
 		err = a.Run()
 		fatal(err)
 		saveStats(a, false)

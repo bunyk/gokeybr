@@ -12,6 +12,7 @@ import (
 
 var zen bool
 var mute bool
+var minSpeed int
 var rootCmd = &cobra.Command{
 	Use:  "gokeybr",
 	Long: Help,
@@ -43,5 +44,6 @@ func Execute() {
 	pf := rootCmd.PersistentFlags()
 	pf.BoolVarP(&zen, "zen", "z", false, "run training session in \"zen mode\" (minimal screen output)")
 	pf.BoolVarP(&mute, "mute", "m", false, "Do not produce sound when wrong key is hit")
+	pf.IntVarP(&minSpeed, "min-speed", "s", 0, "Minimal speed limit in WPM")
 	fatal(rootCmd.Execute())
 }

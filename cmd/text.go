@@ -20,6 +20,7 @@ var textCmd = &cobra.Command{
 		fatal(err)
 		a.Zen = zen
 		a.Mute = mute
+		a.MinSpeed = minSpeed
 		a.Offset = skipped
 
 		a.Run()

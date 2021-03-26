@@ -9,12 +9,11 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-// wordsPerChar is used for computing WPM.
-// Word is considered to be in average 5 characters long.
-const wordsPerChar = 0.2
-
 var doneStyle tcell.Style = tcell.StyleDefault.
 	Foreground(tcell.ColorGreen)
+
+var lifeStyle tcell.Style = tcell.StyleDefault.
+	Foreground(tcell.ColorPurple)
 
 var redBar = tcell.StyleDefault.
 	Background(tcell.ColorRed)
@@ -22,16 +21,20 @@ var redBar = tcell.StyleDefault.
 var greenBar = tcell.StyleDefault.
 	Background(tcell.ColorGreen)
 
+var blackBar = tcell.StyleDefault.
+	Background(tcell.ColorDefault)
+
 var errorStyle = redBar.
 	Foreground(tcell.ColorBlack)
 
 type DisplayableData struct {
-	Header    string
 	DoneText  []rune
 	WrongText []rune
 	TODOText  []rune
 	Timeline  []float64
 	StartedAt time.Time
+	WPM       float64
+	Life      float64
 	Zen       bool
 	Offset    int
 }
@@ -40,32 +43,34 @@ func Render(s tcell.Screen, dd DisplayableData) {
 	s.Clear()
 	w, h := s.Size()
 
-	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 2, w-5, h-4)
+	write3colors(s, dd.DoneText, dd.WrongText, dd.TODOText, 2, 3, w-5, h-4)
 
 	if !dd.Zen {
-		write(s, dd.Header, 1, 0, tcell.StyleDefault)
+		if dd.Life > 0.0 {
+			for i := 0; i < w; i++ {
+				s.SetContent(i, 0, ' ', nil, blackBar)
+			}
+			for i := 0; i < int(float64(w)*dd.Life/3.0); i++ {
+				s.SetContent(i*3+1, 0, '♥', nil, lifeStyle)
+			}
+		}
+		write(s, "Type this:", 2, 1, tcell.StyleDefault)
 
 		// Stats:
 		timer := "Go!"
-		wpm := 0.0
 		if !dd.StartedAt.IsZero() {
 			seconds := time.Since(dd.StartedAt).Seconds()
 			timer = fmt.Sprintf("%.1f sec", seconds)
-			if len(dd.DoneText) > 10 {
-				tenCharsSeconds := seconds - dd.Timeline[len(dd.DoneText)-10]
-				wpm = wordsPerChar * 10 / tenCharsSeconds * 60.0
-			}
 		}
-
 		// Show timer
 		x := (w - utf8.RuneCountInString(timer)) / 2
 		write(s, timer, x, h-1, tcell.StyleDefault)
 
 		// Show wpm
-		if wpm > 0 {
-			speedometer := wpm / stats.AverageWPM() // compute speed improvement relative to average
-			speedStyle := redBar                    // show slow speeds in red
-			if speedometer >= 0.90 {                // Keeping in range of 90% of average speed is good
+		if dd.WPM > 0 {
+			speedometer := dd.WPM / stats.AverageWPM() // compute speed improvement relative to average
+			speedStyle := redBar                       // show slow speeds in red
+			if speedometer >= 0.90 {                   // Keeping in range of 90% of average speed is good
 				speedStyle = greenBar
 			}
 			speedometer = speedometer / 2.0 // so average speed is displayed at the middle of speedometer
@@ -74,7 +79,7 @@ func Render(s tcell.Screen, dd DisplayableData) {
 			}
 			vBar(s, 0, 0, int(float64(h)*speedometer), speedStyle)
 
-			write(s, fmt.Sprintf("%.0f wpm", wpm), 0, h-1, tcell.StyleDefault)
+			write(s, fmt.Sprintf("%.0f wpm", dd.WPM), 0, h-1, tcell.StyleDefault)
 		}
 
 		// Show progress

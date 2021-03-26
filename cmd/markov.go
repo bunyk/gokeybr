@@ -25,6 +25,7 @@ var markovCmd = &cobra.Command{
 		fatal(err)
 		a.Zen = zen
 		a.Mute = mute
+		a.MinSpeed = minSpeed
 
 		err = a.Run()
 		fatal(err)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bunyk/gokeybr/fs"
 	"github.com/bunyk/gokeybr/view"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/encoding"
@@ -12,6 +13,8 @@ import (
 // used for testing
 // j - type, k - untype
 const cheating = false
+
+const InitialLife = 10 * time.Second
 
 // App holds whole app state
 type App struct {
@@ -25,6 +28,12 @@ type App struct {
 	Zen  bool
 	Mute bool
 
+	// Minimal permitted speed
+	MinSpeed              int
+	LastLifeReductionTime time.Time
+	// For how long you could have your speed under speed limit and still continue typing
+	RemainingLife time.Duration
+
 	scr tcell.Screen
 }
 
@@ -33,6 +42,7 @@ func New(text string) (*App, error) {
 	a.ErrorInput = make([]rune, 0, 20)
 	a.Text = []rune(text)
 	a.Timeline = make([]float64, len(a.Text))
+	a.RemainingLife = InitialLife
 
 	encoding.Register()
 	var err error
@@ -74,6 +84,9 @@ func (a *App) Run() error {
 
 	for {
 		view.Render(a.scr, a.ToDisplay())
+		if a.RemainingLife <= 0 {
+			return nil
+		}
 		ev := <-events
 		switch event := ev.(type) {
 		case *tcell.EventKey:
@@ -89,14 +102,64 @@ func (a *App) Run() error {
 	}
 }
 
-func (a App) ToDisplay() view.DisplayableData {
+func log(v interface{}) {
+	fs.AppendJSONLine("debug.jsonl", v)
+}
+
+// wordsPerChar is used for computing WPM.
+// Word is considered to be in average 5 characters long.
+const wordsPerChar = 0.2
+const WPMWindow = 20
+
+func (a *App) CheckWPM() float64 {
+	wpm := 0.0
+	seconds := time.Since(a.StartedAt).Seconds()
+	if a.InputPosition > 1 {
+		secondsPerWindow := seconds - a.Timeline[max(a.InputPosition-WPMWindow, 0)]
+		wpm = wordsPerChar * float64(min(WPMWindow, a.InputPosition)) / secondsPerWindow * 60.0
+
+		if a.MinSpeed > 0 { // need to check speed limits
+			if wpm < float64(a.MinSpeed) { // speed below limit
+				if !a.LastLifeReductionTime.IsZero() { // speed was already below limit
+					diff := time.Since(a.LastLifeReductionTime)
+					a.RemainingLife -= diff
+				}
+				a.LastLifeReductionTime = time.Now()
+			} else { // speed above limit, stop reductions
+				a.LastLifeReductionTime = time.Time{}
+			}
+		}
+	}
+	return wpm
+}
+
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func (a *App) ToDisplay() view.DisplayableData {
+	wpm := a.CheckWPM()
+	life := 0.0
+	if a.MinSpeed > 0 {
+		life = float64(a.RemainingLife) / float64(InitialLife)
+	}
 	return view.DisplayableData{
-		Header:    "Type the text below:", // TODO: add more data here
 		DoneText:  a.Text[:a.InputPosition],
 		WrongText: a.ErrorInput,
 		TODOText:  a.Text[a.InputPosition:],
-		Timeline:  a.Timeline,
 		StartedAt: a.StartedAt,
+		WPM:       wpm,
+		Life:      life,
 		Zen:       a.Zen,
 		Offset:    a.Offset,
 	}
