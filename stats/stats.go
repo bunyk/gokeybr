@@ -430,6 +430,9 @@ func formatDuration(d time.Duration) string {
 	if h == 0 {
 		return fmt.Sprintf("%dm", m)
 	}
+	if m == 0 {
+		return fmt.Sprintf("%dh", h)
+	}
 	return fmt.Sprintf("%dh%dm", h, m-h*60)
 }
 
